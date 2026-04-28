@@ -1,0 +1,28 @@
+{
+  "name": "alura",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "server",
+    "shared"
+  ],
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "devc": "concurrently -k -n SERVER,CLIENT -c cyan,magenta \"pnpm --filter=server dev\" \"pnpm --filter=client dev\"",
+    "deva": "concurrently -k -n SERVER,ADMIN -c cyan,blue \"pnpm --filter=server dev\" \"pnpm --filter=admin dev\"",
+    "build": "pnpm --filter=server build && pnpm --filter=client build && pnpm --filter=admin build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.33.2+sha512.a90faf6feeab71ad6c6e57f94e0fe1a12f5dcc22cd754db40ae9593eb6a3e0b6b12e3540218bb37ae083404b1f2ce6db2a4121e979829b4aff94b99f49da1cf8",
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "nodemon": "^3.1.10",
+    "tsx": "^4.19.4"
+  }
+}

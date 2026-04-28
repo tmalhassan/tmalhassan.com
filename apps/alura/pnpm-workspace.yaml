@@ -1,0 +1,8 @@
+packages:
+  - apps/*
+  - server
+  - shared
+ignoredBuiltDependencies:
+  - esbuild
+onlyBuiltDependencies:
+  - '@swc/core'

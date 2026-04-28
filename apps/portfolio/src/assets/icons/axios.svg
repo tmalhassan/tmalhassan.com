@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewBox="0 0 32 32">
+  <style>
+    .st1{fill:#fff}
+  </style>
+  <path id="BG_x5F_COLOR" d="M23.75 32H8.25A8.25 8.25 0 0 1 0 23.75V8.25A8.25 8.25 0 0 1 8.25 0h15.5A8.25 8.25 0 0 1 32 8.25v15.5A8.25 8.25 0 0 1 23.75 32" style="fill:#5a29e4"/>
+  <g id="FRONT_x5F_COLOR">
+    <g id="Axios">
+      <path d="m9.39 11.974 5.749-4.811.008 19.211L13.19 28l-.032-15.977zM22.61 20.026l-5.749 4.811-.008-19.212L18.81 4l.032 15.977z" class="st1"/>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,106 @@
+
+.about-me-container{
+  /* place-self: center; */
+  align-self: center;
+  justify-self: center;
+  width: 90%; height: 90%;
+  max-width: 600px;
+  /* max-height: 300px; */
+  border-radius: 10px;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  /* background-color: rgba(121, 121, 121, 0.5); */
+  background-color: var(--bg);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2), 0 3px 3px rgba(0, 0, 0, 0.15);
+}
+[theme=light] .about-me-container{ background-color: rgba(250, 248, 246, 0.6); }
+[theme=dark] .about-me-container{ background-color: rgba(115, 115, 115, 0.3); }
+/* [theme=light] .about-me-container{
+}
+[theme=dark] .about-me-container{
+  background-color: rgb(250 248 246 / 50%);
+} */
+
+
+.about-me-body{
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 8px;
+}
+
+.about-me-title{
+  /* position: absolute; */
+  /* width: clamp(140px, 45vw, 275px); */
+  width: 200px;
+  filter: drop-shadow(-2px 2px 1px rgba(0, 0, 0, 0.4));
+  opacity: 85%;
+  margin: 40px 0 0 20px;
+  /* z-index: 1; */
+  transition: opacity 0.2s ease-in-out;
+}
+
+/* .about-me-container.animate .anim-letter{
+  animation-play-state: running !important;
+} */
+/* [theme=light] .about-me-title{
+  opacity: 85%;
+} */
+
+.about-me-body > p{
+  word-spacing: 2px;
+  line-height: 1.6em;
+}
+
+/* .paragraph-word{
+  display: inline-block;
+  transform: translateY(100%);
+  opacity: 0%;
+  
+  animation: animateWord 0.5s ease-in-out forwards paused;
+  transition-duration: 0.2s;
+}
+.paragraph-word.itlc{ font-style: italic; font-weight: 700; } */
+.about-me-container.animate .paragraph-word{
+  transform: translateY(100%);
+  opacity: 0%;
+  animation-play-state: running;
+}
+.about-me-container.end-animate .paragraph-word{
+  transform: translateY(0%);
+  opacity: 100%;
+  /* animation: animateWord 0s 0s ease-in forwards; */
+}
+
+
+
+
+
+
+
+/* For laptops */
+@media screen and (min-width: 1025px) {
+  .about-me-container{
+    /* transform: scale(max(50%, var(--about-me-transform))); */
+    /* position: absolute; */
+    position: fixed;
+    inset: 0;
+    left: -50%;
+    width: 35%; height: unset;
+    max-width: unset;
+    aspect-ratio: 1.5;
+    margin: auto;
+    /* left: 8%; */
+    backdrop-filter: blur(2px);
+    opacity: var(--about-me-opacity);
+    transition: background-color 0.2s ease-in-out;
+  }
+  [theme=light] .about-me-container{ background-color: rgba(200, 200, 200, 0.3); }
+  [theme=dark] .about-me-container{ background-color: rgba(115, 115, 115, 0.3); }
+}
+
+/* For iPads */
+@media screen and (min-width: 601px) and (max-width: 1024px) {}
+
+/* For Mobile */
+@media screen and (max-width: 600px) {}

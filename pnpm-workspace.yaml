@@ -1,0 +1,8 @@
+packages:
+  - apps/*
+  - apps/alura/*
+
+onlyBuiltDependencies:
+  - bcrypt
+  - esbuild
+  - sharp

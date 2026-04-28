@@ -1,0 +1,271 @@
+:root{
+  --bg-elem-scroll: 0%;
+}
+
+.intro-bg{
+  /* --myColor1: rgb(255 204 163 / 50%);
+  --myColor2: rgb(250 200 150 / 50%); */
+  --myColor1: rgb(154 129 108 / 100%);
+  --myColor2: rgb(148 114 84 / 100%);
+  --myColor3: rgb(132 110 88 / 100%);
+
+  position: relative;
+  /* position: absolute; */
+  width: 100%; height: 100%;
+  z-index: 1;
+  /* background-color: aqua; */
+  background: linear-gradient(90deg, var(--myColor1) 0%, var(--myColor2) 45% 55%, var(--myColor3) 100%);
+  /* animation: rotateBG 10s linear infinite; */
+}
+[theme=light] .intro-bg{
+  --myColor1: rgb(255 204 163 / 100%);
+  --myColor2: rgb(246 211 180 / 100%);
+  --myColor3: rgb(250 200 150 / 100%);
+}
+.intro-bg::before{
+  transform: translate(-50%, -50%);
+  position: absolute;
+  top: 50%; left: 50%;
+  content: "";
+  width: calc(100% - min(2.5vw, 10px));
+  height: calc(100% - min(2.5vw, 10px));
+  background-color: var(--bg);
+  transition: background-color 0.2s ease-in-out;
+}
+.intro-bg[data-enableanim=false]::before{
+  transition-duration: 0s;
+}
+
+.intro-bg-pattern{
+  position: relative;
+  width: 100%; height: 100%;
+
+  mask-image: url('../../assets/pages/intro-page/intro-bg.svg');
+  -webkit-mask-image: url('../../assets/pages/intro-page/intro-bg.svg');
+
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
+
+  -webkit-mask-size: 40vh;
+  mask-size: 40vh;
+
+  -webkit-mask-position: center;
+  mask-position: center;
+
+  mask-mode: alpha;
+
+  overflow: hidden;
+}
+[theme=dark] .intro-bg-pattern{
+  background: rgb(255 255 255 / 1.5%);
+}
+[theme=light] .intro-bg-pattern{
+  background: rgb(0 0 0 / 2.5%);
+}
+
+.intro-bg-pattern > .glow{
+  position: absolute;
+  top: 0; left: 0;
+  width: 80vh;
+  aspect-ratio: 0.5;
+  background: radial-gradient(circle at center,
+    rgb(var(--color)) 0%,
+    rgb(var(--color) / 20%) 15%,
+    rgba(0, 0, 0, 0) 45%
+  );
+  border-radius: 100%;
+}
+[theme=dark] .intro-bg-pattern > .glow{
+  --color: 255 243 220;
+}
+[theme=light] .intro-bg-pattern > .glow{
+  --color: 63 63 63;
+}
+
+.bg-elements{
+  /* transform: translate(0px, var(--bg-elem-scroll)); */
+  pointer-events: none;
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  /* opacity: var(--bg-elem-scroll); */
+}
+
+.my-pfp{
+  pointer-events: none;
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  inset: 0; margin: auto;
+  bottom: 10%;
+
+  object-fit: contain;
+  max-height: 70%;
+  width: 90%;
+  max-width: 450px;
+}
+
+.my-pfp > img{
+  object-fit: contain;
+  width: 100%; height: 100%;
+}
+
+.intro-page-elements button{
+  cursor: pointer;
+  pointer-events: all;
+}
+
+.intro-page-elements{
+  pointer-events: none;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+
+.texts-container{
+  --txtBgColor: #00000000;
+  transform: translateY(32vh);
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: fit-content;
+  max-width: 1000px;
+  padding: 10vh 0;
+  inset: 0;
+  bottom: 10%;
+  margin: auto;
+
+  background: linear-gradient(to left, transparent 0%, var(--txtBgColor) 20%, var(--txtBgColor) 80%, transparent 100%);
+  mask: linear-gradient(to bottom, transparent 25px, var(--txtBgColor) 35%, var(--txtBgColor) 65%, transparent 100%);
+
+  transition: --txtBgColor 0.2s ease-in-out;
+}
+[theme=dark] .texts-container{
+  --txtBgColor: #353535;
+}
+[theme=light] .texts-container{
+  --txtBgColor: #faf8f6;
+}
+
+@property --txtBgColor{
+  syntax: '<color>';
+  initial-value: #ffffff00;
+  inherits: false;
+}
+
+.texts-container > .f-name{
+  transform: translateY(200%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  overflow: hidden;
+  opacity: 0%;
+  z-index: 2;
+  animation: fNameAnimation 0.5s 0.2s ease-out forwards;
+}
+.f-name > p{
+  font: 400 clamp(16px, calc(8px + 2vw), 2em) 'Michroma';
+  letter-spacing: 4em;
+  margin: 0;
+  margin-left: 4em;
+  text-shadow: -5px 5px 10px rgb(0 0 0 / 50%);
+}
+
+@keyframes fNameAnimation {
+  0% {
+    transform: translateY(200%);
+    opacity: 0%;
+  } 50% {
+    opacity: 15%;
+  } 100% {
+    transform: translateY(0%);
+    opacity: 100%;
+  }
+}
+
+.texts-container > .l-name{
+  position: absolute;
+  width: clamp(280px, 45vw, 550px);
+  filter: drop-shadow(-2px 2px 1px rgba(0, 0, 0, 0.4));
+  opacity: 65%;
+  z-index: 1;
+  transition: opacity 0.2s ease-in-out;
+}
+[theme=light] .l-name{
+  opacity: 85%;
+}
+
+.texts-container > .l-name > svg{
+  opacity: 0%;
+  animation: initialOpacity 0.5s forwards;
+}
+
+.skills-text{
+  --anim-delay: 3s;
+  transform: translate(0%, 84vh);
+  /* position: absolute; */
+  /* place-self: center; */
+  justify-self: center;
+  width: 100%;
+  /* top: 0;  */
+  font-family: 'Michroma';
+  text-align: center;
+  white-space: nowrap;
+  /* font-size: 0.8em; */
+  font-size: clamp(0.65em, calc(0.35em + 1vw), 0.8em);
+  /* calc(clamp(0.8em, 0.4em + 1vw, 1em)); */
+}
+.skills-text span{
+  display: inline-block;
+  transform: translateY(100%);
+  opacity: 0%;
+  animation: animateWord 0.5s var(--anim-delay) ease-in-out forwards;
+  /* transition-duration: 0.2s; */
+}
+/* 0.015 */
+/* .skills-text span:nth-child(1){ animation-delay: calc(var(--anim-delay) + 0.5s); }
+.skills-text span:nth-child(2){ animation-delay: calc(var(--anim-delay)); }
+.skills-text span:nth-child(3){ animation-delay: calc(var(--anim-delay) + 1s); }
+.skills-text span:nth-child(4){ animation-delay: calc(var(--anim-delay)); }
+.skills-text span:nth-child(5){ animation-delay: calc(var(--anim-delay) + 1.5s); } */
+
+.skills-text .p-separator{
+  margin: 0 7px;
+  font-size: calc(clamp(0.7em, 0.4em + 1vw, 1em));
+}
+
+
+@keyframes initialOpacity {
+  0%, 99% { opacity: 0%; }
+  100% { opacity: 100%; }
+}
+
+.theme-button{
+  position: absolute;
+  top: 20px; right: 20px;
+}
+
+
+@media screen and (max-aspect-ratio: 1/1) {
+  .skills-text{
+    transform: translate(0%, calc(84vh - (calc(100vh - 100vw) * 0.025)));
+  }
+}
+
+/* For laptops */
+@media screen and (min-width: 1025px) {
+  .bg-elements{
+    transform: translate(var(--bg-elem-scroll), 0px);
+  }
+}
+
+/* For iPads */
+@media screen and (min-width: 601px) and (max-width: 1024px) {}
+
+/* For Mobile */
+@media screen and (max-width: 600px) {}
