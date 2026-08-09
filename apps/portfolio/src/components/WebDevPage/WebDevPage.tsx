@@ -12,6 +12,8 @@ import lerpHue from '../../utilities/lerpHue';
 import lerp from '../../utilities/lerp';
 import AnimateText from '../AnimateText/AnimateText';
 import { LogoShatter } from '../SectionView/SectionView';
+import { SectionViewCanvasEngine } from '../SectionView/SectionViewCanvasEngine';
+import { useDevice } from '../../contexts/device-context/useDevice';
 
 // type toolbarCategories = 'front-end' | 'back-end' | 'npm' | 'design';
 // type toolbarOptions = {
@@ -69,7 +71,21 @@ interface WebDevPageType {
 
 export default function WebDeveloperPage({ sectionViewPageRef, activeProject, setActiveProject, setProjectInView }: WebDevPageType) {
   const { theme } = useTheme();
+  const { device, tier } = useDevice();
+
   const projectsWrapperRef = useRef<HTMLDivElement | null>(null);
+
+  const canvasEngineRef = useRef<SectionViewCanvasEngine | null>(null);
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const rawDpr = Math.min(window.devicePixelRatio || 1, 2);
+  const dpr = tier === "high"
+      ? Math.min(rawDpr, device === "laptop" ? 2 : 1.75)
+      : tier === "mid"
+        ? Math.min(rawDpr, device === "laptop" ? 1.75 : 1.25) // 1.75 : 1.5
+        : Math.min(rawDpr, device === "laptop" ? 1.5 : 1.15); // 1.5 : 1.25
 
   // useEffect(() => {
   //   let resizeRafId: number | null = null;
@@ -91,6 +107,52 @@ export default function WebDeveloperPage({ sectionViewPageRef, activeProject, se
   //     if (resizeRafId) cancelAnimationFrame(resizeRafId);
   //   }
   // }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return;
+    
+    const engine = new SectionViewCanvasEngine(canvas, activeProject, dpr);
+    canvasEngineRef.current = engine;
+
+    const IntrsObserver = new IntersectionObserver(([entry]) => {
+      if (!entry) return;
+      
+      engine.updateInView(entry.isIntersecting);
+    }, { threshold: 0.01 })
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      if (!entries[0]) return;
+      const { width, height } = entries[0].contentRect;
+      engine.handleResize(width, height);
+    });
+    
+    if (containerRef.current) {
+      IntrsObserver.observe(containerRef.current);
+      resizeObserver.observe(containerRef.current);
+    }
+
+    // clean up
+    return () => {
+      IntrsObserver.disconnect();
+      resizeObserver.disconnect();
+      engine.destroy();
+      
+      if (canvasEngineRef.current === engine) {
+        canvasEngineRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!canvasEngineRef.current) return;
+    canvasEngineRef.current.updateProject(activeProject);
+  }, [activeProject]);
+
+  useEffect(() => {
+    if (!canvasEngineRef.current) return;
+    canvasEngineRef.current.updateTheme(theme);
+  }, [theme]);
 
   useEffect(() => {
     const projWrapElement = projectsWrapperRef.current;
@@ -133,7 +195,10 @@ export default function WebDeveloperPage({ sectionViewPageRef, activeProject, se
     <div className="web-page">
       <div className='wp-header'>
         {/* <NeuralBlob activeProject={activeProject}/> */}
-        <LogoShatter activeProject={activeProject}/>
+        {/* <LogoShatter activeProject={activeProject}/> */}
+        <div className='logo-shatter-canvas' ref={containerRef} style={{ width: "100%", height: "100%", display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <canvas ref={canvasRef} />
+        </div>
         <AnimateText
           type='title'
           text={[`A spark of curiosity that turned into _passion_.`]}

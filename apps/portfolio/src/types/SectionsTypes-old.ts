@@ -21,9 +21,7 @@ export type sectionProps = {
     x: number;
     y: number;
   },
-  fontFamily: string;
-  fontStyle: string;
-  fontSize: number;
+  font: (px: number) => string;
   textMetr: {
     width: number;
     height: number;
@@ -32,7 +30,7 @@ export type sectionProps = {
   animDuration: number;
   animStart: boolean;
   startTime: number | null;
-  mesh: MeshPiece[];
+  mesh: () => MeshPiece[];
   revealRad: number;
 }
 

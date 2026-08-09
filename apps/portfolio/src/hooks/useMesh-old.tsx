@@ -1,7 +1,7 @@
 import { Delaunay } from "d3-delaunay";
 import PoissonDiskSampling from "poisson-disk-sampling";
 import { type Path64, type Paths64, ClipperOffset, FillRule, JoinType, EndType, pointInPolygon, getBounds, PointInPolygonResult, Clipper64, ClipType } from 'clipper2-ts';
-import type { Island, MeshIslandProps, MeshPiece, Point, PolyColor, TriangleClass, MeshRegenType, LogoSpec, LogoId, MeshVariant, MeshKey, MeshCacheEntry } from '../types/MeshRegenTypes';
+import type { Island, MeshIslandProps, MeshPiece, Point, PolyColor, TriangleClass, MeshRegenType, LogoSpec, LogoId, PreMeshVariant, MeshKey, MeshCacheEntry } from '../types/MeshRegenTypes';
 import type { DeviceTypes } from "../contexts/device-context/DeviceContext";
 
 //  projects logos  //
@@ -50,7 +50,7 @@ const LOGOS: Record<LogoId, LogoSpec> = {
 
 };
 
-const MESH_VARIANTS: MeshVariant[] = [
+const MESH_VARIANTS: PreMeshVariant[] = [
   { logo: 'alura', type: 'wire', userStep: 0.5, offsetMultiplier: 3 },
   { logo: 'alura', type: 'glass', userStep: 0.1, offsetMultiplier: 3 },
   { logo: 'hairday', type: 'wire', userStep: 0.25, offsetMultiplier: 2 },
@@ -99,7 +99,7 @@ async function measureDevicePerformance(): Promise<number> {
   return performance.now() - start; // lower = faster device
 }
 
-export default function useMesh({ logo, type }: { logo: LogoId; type: MeshVariant['type'] }): MeshPiece[] {
+export default function useMesh({ logo, type }: { logo: LogoId; type: PreMeshVariant['type'] }): MeshPiece[] {
   
 
   const variant = MESH_VARIANTS.find(
@@ -234,7 +234,7 @@ export async function preloadMeshes(colorCanvases: Record<LogoId, ImageData>) {
 
 function makeMeshKey(
   logo: LogoId,
-  variant: MeshVariant,
+  variant: PreMeshVariant,
   logoSpec: LogoSpec
 ): MeshKey {
   return [

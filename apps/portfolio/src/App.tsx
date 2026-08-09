@@ -1,5 +1,5 @@
 import './App.css'
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 // import { useTheme } from './contexts/theme-context/useTheme';
 import SectionViewPage from './components/SectionView/SectionView';
@@ -7,10 +7,10 @@ import IntroPage from './components/IntroPage/IntroPage';
 import AboutMePage from './components/AboutMePage/AboutMePage';
 import SkillsPage from './components/SkillsPage/SkillsPage';
 import clamp from './utilities/clamp';
-import type { Project, sectionsTypes } from './types/SectionsTypes';
+import type { sectionsTypes } from './types/SectionsTypes';
 import { useDevice } from './contexts/device-context/useDevice';
 import ThankYouPage from './components/ThanksYouPage/ThankYouPage';
-import { bakeAllLogoColors, preloadMeshes } from './hooks/useMesh';
+import { bakeAllLogoColors, preloadMeshes } from './mesh/getMesh';
 import type { LogoId } from './types/MeshRegenTypes';
 
 export default function App() {
@@ -31,8 +31,6 @@ export default function App() {
 
   const thankYouDivRef = useRef<HTMLDivElement | null>(null);
   // const thankYouCoverRef = useRef<HTMLDivElement | null>(null);
-
-  const closeSkillsSectionsRef = useRef(() => {});
 
   const svTimeoutRef = useRef<number | null>(null);
 
@@ -99,53 +97,10 @@ export default function App() {
     };
   }, [getScreenDimensions]);
 
-  // useEffect(() => {
-  //   const canvas = colorsCanvasRef.current;
-  //   if (!canvas || !sectionView) return;
-
-  //   let cancelled = false;
-
-  //   const size = BASE_LOGO_SIZE;
-
-  //   canvas.width = size;
-  //   canvas.height = size;
-
-  //   const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  //   if (!ctx) return;
-
-  //   ctx.clearRect(0, 0, size, size);
-
-  //   const img = new Image();
-  //   const svgBlob = new Blob([aluraLogo], {
-  //     type: 'image/svg+xml;charset=utf-8'
-  //   });
-  //   const url = URL.createObjectURL(svgBlob);
-
-  //   img.onload = () => {
-  //     if (cancelled) return;
-
-  //     ctx.drawImage(img, 0, 0, size, size);
-  //     URL.revokeObjectURL(url);
-  //   };
-
-  //   img.onerror = () => {
-  //     URL.revokeObjectURL(url);
-  //   };
-
-  //   img.src = url;
-
-  //   return () => {
-  //     cancelled = true;
-  //     URL.revokeObjectURL(url);
-  //   };
-  // }, [getScreenDimensions, sectionView]);
-
   function ToggleSectionView({ state, type } : { state: true; type: sectionsTypes } | { state: false; type: null }) {
     if (svTimeoutRef.current) clearTimeout(svTimeoutRef.current);
     skillsDivRef.current?.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'center' });
     setSVTransToggle(state);
-
-    if (state === false) closeSkillsSectionsRef.current();
 
     svTimeoutRef.current = setTimeout(() => {
       setSectionView(type);
@@ -159,7 +114,7 @@ export default function App() {
       <div className={`cards-container${svTransToggle ? ' hidden' : ''}`} inert={!!sectionView}> {/* Container 1 */}
         <IntroPage refs={{ divRef: introDivRef, coverRef: introCoverRef }} isHidden={isHidden}/>
         <AboutMePage refs={{ divRef: aboutMeDivRef, coverRef: aboutMeCoverRef}} isHidden={isHidden}/>
-        <SkillsPage refs={{ divRef: skillsDivRef, coverRef: skillsCoverRef }} sectionView={sectionView} svTransToggle={svTransToggle} ToggleSectionView={ToggleSectionView} closeSkillsSectionsRef={closeSkillsSectionsRef} />
+        <SkillsPage refs={{ divRef: skillsDivRef, coverRef: skillsCoverRef }} sectionView={sectionView} svTransToggle={svTransToggle} ToggleSectionView={ToggleSectionView} />
         <ThankYouPage ref={thankYouDivRef} isHidden={isHidden}/>
       </div>
     </>

@@ -23,25 +23,9 @@ export function prepareIslands(
 }
 
 
-export default function generateMeshFromIslands({
-  islands, // ✅ NEW: comes from main thread
-  userStep,
-  width,
-  height,
-  offsetMultiplier,
-  imageData
-}: MeshRegenType): MeshPiece[] {
-
+export default function generateMeshFromIslands({ islands,  userStep,  offsetMultiplier, imageData }: MeshRegenType): MeshPiece[] {
   const spacing = userStep * 100;
 
-  // ❌ REMOVED:
-  // - paths
-  // - subpaths
-  // - pathToAbsoluteD
-  // - splitPathD
-  // - buildIslandSubpaths
-
-  // ✅ islands are already prepared
   const clipperIslands = islands;
 
   const meshIslands: MeshIslandProps[] = clipperIslands.map((island) => {
@@ -146,7 +130,7 @@ export default function generateMeshFromIslands({
           triangleIndex: i / 3,
           state: "FULLY",
           centroid: triCentroid,
-          color: bakePieceColors(imageData, tri, triCentroid)
+          color: imageData ? bakePieceColors(imageData, tri, triCentroid) : { r: 255, g: 255, b: 255, a: 1 }
         });
         continue;
       }
@@ -167,7 +151,7 @@ export default function generateMeshFromIslands({
           triangleIndex: i / 3,
           state,
           centroid: polyCentroid,
-          color: bakePieceColors(imageData, polyPts, polyCentroid)
+          color: imageData ? bakePieceColors(imageData, polyPts, polyCentroid) : { r: 255, g: 255, b: 255, a: 1 }
         });
       }
     }
@@ -637,7 +621,6 @@ function samplePath64ByDistance(
   return result;
 }
 
-
 function triangleCentroid(tri: Point[]) {
   return {
     x: (tri[0].x + tri[1].x + tri[2].x) / 3,
@@ -677,4 +660,23 @@ export function path64ToPoints(path: Path64, scale: number): Point[] {
     x: p.x / scale,
     y: p.y / scale,
   }));
+}
+
+/**
+ * Converts a Path64 (array of {x, y}) to an SVG path 'd' string.
+ * @param {Array} path - The Path64 result from clipper-ts
+ * @param {boolean} isClosed - Whether to close the path with 'Z'. defaults to true
+ * @returns {string} The formatted 'd' string
+ */
+export function path64ToPathD(path: Path64, isClosed: boolean = true): string {
+  if (!path || path.length === 0) return "";
+
+  // Move to the first point, then draw lines to subsequent points
+  const d = path.map((pt, index) => {
+    const command = index === 0 ? "M" : "L";
+    return `${command}${pt.x},${pt.y}`;
+  }).join(" ");
+
+  // Add Z to close the path if it's a polygon
+  return isClosed ? `${d} Z` : d;
 }

@@ -1,7 +1,7 @@
 import type { Path64 } from "clipper2-ts";
 
 export type MeshRegenType = {
-  imageData: ImageData;
+  imageData?: ImageData;
   paths?: string[]; // ✅ optional now
   islands: Island[];
   userStep: number;
@@ -52,21 +52,31 @@ export type Island = {
 };
 
 export type LogoId = 'alura' | 'meshregen' | 'hairday' | 'starleap';
+export type PolyId = 'webpoly' | 'gamepoly' | 'designpoly';
 
-export type LogoSpec = {
-  id: LogoId;
+export type MeshId = LogoId | PolyId;
+
+export type MeshSpecs = {
+  id: MeshId;
   paths: string[];
-  svgUrl: string;
   width: number;
   height: number;
+  svgUrl?: string; // only exists for logos
 };
 
-export type MeshVariant = {
-  logo: LogoId;
+export type PreMeshVariant = {
+  mesh: LogoId;
   type: 'wire' | 'glass';
   userStep: number;
   offsetMultiplier: number;
 };
+
+export type DynMeshVariant = {
+  mesh: PolyId;
+  type: 'wire' | 'glass';
+  userStep: number;
+  offsetMultiplier: number;
+}
 
 export type MeshKey = string;
 

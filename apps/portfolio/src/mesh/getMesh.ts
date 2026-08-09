@@ -1,4 +1,4 @@
-import type { MeshPiece, MeshRegenType, LogoSpec, LogoId, MeshVariant, MeshKey, MeshCacheEntry } from '../types/MeshRegenTypes';
+import type { MeshPiece, MeshRegenType, LogoId, PreMeshVariant, MeshKey, MeshCacheEntry, PolyId, MeshSpecs, MeshId, DynMeshVariant } from '../types/MeshRegenTypes';
 import type { DeviceTiers, DeviceTypes } from '../types/DeviceTypes';
 import { prepareIslands } from "../mesh/meshCore";
 import { getDevicePerformance, getDeviceTier } from '../components/benchmark/benchmarkDevice';
@@ -43,7 +43,10 @@ const meshWorker = new Worker(
 //   return w.__meshWorker;
 // }
 
-const LOGOS: Record<LogoId, LogoSpec> = {
+//--------------------------------------
+// Pre-defined meshes (stattic)
+//--------------------------------------
+const LOGOS: Record<LogoId, MeshSpecs> = {
   alura: {
     id: 'alura',
     paths: [`M513.5 532.7l-139.5 128.9 139.5-179.7 139.5 179.7-139.5-128.9zM692.3 676.5l94.1-52.5 7.9 52.5h-102zM785.3 623l-94.1 52.5-117.5-130.2 66.7 17.2 144.9 60.5zM766.2 552.1l39.8 32.8-165.6-24-66.7-17.2 74.7-5.1 117.8 13.5zM768.2 552.1l186.2-28.5-146.4 61.4-39.8-32.9zM954.5 522.1l-186.7 28.5-115.3-13 156.1-34.3 145.9 18.8zM906.7 468.8l-257.8 68.8-75 5.2 88.8-76 244 2zM994.9 347.3l-87.5 120-244-2 331.5-118zM237.7 624.1l94 52.5h-101.9l7.9-52.5zM450.2 545.3l-117.5 130.2-94-52.5 144.8-60.5 66.7-17.2zM257.7 552.2l117.7-13.4 74.7 5.1-66.7 17.2-165.6 24 39.9-32.9zM69.5 523.7l186.3 28.5-39.9 32.9-146.4-61.4zM256.2 550.7l-186.7-28.5 145.8-18.9 156.1 34.4-115.2 13zM375.1 537.6l-257.9-68.8 244.1-2 88.8 76-75-5.2zM29.1 347.4l87.5 120 244-2-331.5-118z`],
@@ -74,14 +77,27 @@ const LOGOS: Record<LogoId, LogoSpec> = {
 
 };
 
-const MESH_VARIANTS: MeshVariant[] = [
-  { logo: 'alura', type: 'wire', userStep: 0.5, offsetMultiplier: 3 },
-  { logo: 'alura', type: 'glass', userStep: 0.1, offsetMultiplier: 3 },
-  { logo: 'hairday', type: 'wire', userStep: 0.25, offsetMultiplier: 2 },
-  { logo: 'hairday', type: 'glass', userStep: 0.12, offsetMultiplier: 3 },
-  { logo: 'meshregen', type: 'wire', userStep: 0.25, offsetMultiplier: 2 },
-  { logo: 'meshregen', type: 'glass', userStep: 0.12, offsetMultiplier: 3 },
+//--------------------------------------
+// dynamic meshes (defined at runtiime)
+//--------------------------------------
+const MESHES: Partial<Record<MeshId, MeshSpecs>> = {
+  ...LOGOS,
+  // ...DYNAMIC_MESHES,
+};
+
+const PRE_MESH_VARIANTS: PreMeshVariant[] = [
+  { mesh: 'alura', type: 'wire', userStep: 0.5, offsetMultiplier: 3 },
+  { mesh: 'alura', type: 'glass', userStep: 0.1, offsetMultiplier: 3 },
+  { mesh: 'hairday', type: 'wire', userStep: 0.25, offsetMultiplier: 2 },
+  { mesh: 'hairday', type: 'glass', userStep: 0.12, offsetMultiplier: 3 },
+  { mesh: 'meshregen', type: 'wire', userStep: 0.25, offsetMultiplier: 2 },
+  { mesh: 'meshregen', type: 'glass', userStep: 0.12, offsetMultiplier: 3 },
 ];
+
+const MESH_VARIANTS: (PreMeshVariant | DynMeshVariant)[] = [
+  ...PRE_MESH_VARIANTS,
+  // ...DYN_MESH_VARIANTS
+]
 
 const BASE_SPACING: Record<LogoId, Record<DeviceTypes, number>> = {
   alura: {
@@ -101,85 +117,9 @@ const BASE_SPACING: Record<LogoId, Record<DeviceTypes, number>> = {
   },
 }
 
-export default function useMesh({ logo, type }: { logo: LogoId; type: MeshVariant['type'] }): MeshPiece[] {
-  
-
-  const variant = MESH_VARIANTS.find(
-    v => v.logo === logo && v.type === type
-  );
-
-  if (!variant) return [];
-
-  const logoSpec = LOGOS[logo];
-  const key = makeMeshKey(logo, variant, logoSpec);
-
-  const entry = meshCache.get(key);
-
-  return entry?.status === 'ready' ? entry.pieces! : [];
-}
-
 const pendingResolvers = new Map<MeshKey,
   { resolve: (v: MeshPiece[]) => void; reject: (e: unknown) => void; }
 >();
-
-function scheduleMeshGeneration(
-  key: MeshKey,
-  params: MeshRegenType
-): Promise<MeshPiece[]> {
-  const existing = meshCache.get(key);
-
-  if (existing?.status === 'ready') {
-    return Promise.resolve(existing.pieces!);
-  }
-
-  if (existing?.status === 'generating') {
-    return existing.promise!;
-  }
-
-  let resolve!: (v: MeshPiece[]) => void;
-  let reject!: (e: unknown) => void;
-
-  const promise = new Promise<MeshPiece[]>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-
-  meshCache.set(key, {
-    status: 'generating',
-    promise
-  });
-
-  const run = () => {
-    pendingResolvers.set(key, { resolve, reject });
-
-    console.warn(params);
-
-    const islands = prepareIslands(
-      params.paths!,       // still exists here
-      params.userStep
-    );
-
-    meshWorker.postMessage({
-      key,
-      params: {
-        ...params,
-        islands,
-        paths: undefined // important to prevent accidental usage
-      }
-    });
-  };
-
-  setTimeout(() => {
-    if ('requestIdleCallback' in window) {
-      requestIdleCallback(run, { timeout: 1000 });
-    } else {
-      setTimeout(run, 0);
-    }
-  }, 3500);
-
-  return promise;
-}
-
 
 meshWorker.onmessage = (e: MessageEvent) => {
   const { key, status, pieces, error } = e.data;
@@ -204,9 +144,77 @@ meshWorker.onmessage = (e: MessageEvent) => {
   pendingResolvers.delete(key);
 };
 
+export default function getMesh({ mesh, type }: { mesh: MeshId; type: PreMeshVariant['type']; }): MeshPiece[] {
+  // check if variant exists
+  const variant = MESH_VARIANTS.find(v => 
+    v.mesh === mesh && v.type === type
+  );
+
+  const specs = MESHES[mesh];
+
+  if (!variant || !specs) return [];
+
+  const key = makeMeshKey(mesh, variant, specs);
+
+  const entry = meshCache.get(key);
+
+  return entry?.status === 'ready' ? entry.pieces! : [];
+}
+
+function scheduleMeshGeneration(
+  key: MeshKey,
+  params: MeshRegenType
+): Promise<MeshPiece[]> {
+  const existing = meshCache.get(key);
+
+  if (existing?.status === 'ready') {
+    return Promise.resolve(existing.pieces!);
+  }
+  if (existing?.status === 'generating') {
+    return existing.promise!;
+  }
+
+  let resolve!: (v: MeshPiece[]) => void;
+  let reject!: (e: unknown) => void;
+
+  const promise = new Promise<MeshPiece[]>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  meshCache.set(key, {
+    status: 'generating',
+    promise
+  });
+
+  const run = () => {
+    pendingResolvers.set(key, { resolve, reject });
+
+    const islands = prepareIslands(params.paths!, params.userStep);
+
+    meshWorker.postMessage({
+      key,
+      params: {
+        ...params,
+        islands,
+        paths: undefined 
+      }
+    });
+  };
+
+  setTimeout(() => {
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(run, { timeout: 1000 });
+    } else {
+      setTimeout(run, 0);
+    }
+  }, 3500);
+
+  return promise;
+}
 
 export async function bakeLogoColors(
-  logo: LogoSpec
+  logo: MeshSpecs
 ): Promise<ImageData> {
   const canvas = document.createElement('canvas');
   canvas.width = logo.width;
@@ -215,7 +223,7 @@ export async function bakeLogoColors(
   const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
   const img = new Image();
 
-  img.src = logo.svgUrl;
+  img.src = logo.svgUrl!;
   await img.decode();
 
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -224,7 +232,7 @@ export async function bakeLogoColors(
 
 export async function bakeAllLogoColors(): Promise<Record<LogoId, ImageData>> {
   const entries = await Promise.all(
-    (Object.entries(LOGOS) as [LogoId, LogoSpec][]).map(
+    (Object.entries(LOGOS) as [LogoId, MeshSpecs][]).map(
       async ([logo, specs]) => {
         const imageData = await bakeLogoColors(specs);
         return [logo, imageData] as const;
@@ -251,40 +259,71 @@ export async function preloadMeshes(colorCanvases: Record<LogoId, ImageData>) {
   const currDevice = getDeviceType();
   const deviceTier = await getDevicePerformance().then(getDeviceTier);
 
-  for (const variant of MESH_VARIANTS) {
-    const logoSpec = LOGOS[variant.logo];
+  for (const variant of PRE_MESH_VARIANTS) {
+    const spec = LOGOS[variant.mesh];
 
-    const key = makeMeshKey(variant.logo, variant, logoSpec);
+    const key = makeMeshKey(variant.mesh, variant, spec);
 
     scheduleMeshGeneration(key, {
-      paths: logoSpec.paths,
-      islands: prepareIslands(logoSpec.paths, variant.userStep),
-      userStep: variant.type === 'glass' ? adjustSpacingForPerformance(deviceTier, BASE_SPACING[variant.logo][currDevice]) : variant.userStep,
+      paths: spec.paths,
+      islands: prepareIslands(spec.paths, variant.userStep),
+      userStep: variant.type === 'glass' && isLogoId(variant.mesh) ? adjustSpacingForPerformance(deviceTier, BASE_SPACING[variant.mesh][currDevice]) : variant.userStep,
       offsetMultiplier: variant.offsetMultiplier,
-      width: logoSpec.width,
-      height: logoSpec.height,
-      imageData: colorCanvases[variant.logo]
+      width: spec.width,
+      height: spec.height,
+      imageData: isLogoId(variant.mesh) ? colorCanvases[variant.mesh] : undefined,
     });
   }
 }
 
+export function loadMeshAsync(meshProps: MeshSpecs & { id: PolyId; userStep: number; offsetMultiplier: number; }): Promise<MeshPiece[]> {
+  MESHES[meshProps.id] = { 
+    id: meshProps.id, 
+    paths: meshProps.paths, 
+    width: meshProps.width, 
+    height: meshProps.height 
+  };
+
+  const variantData: DynMeshVariant = {
+    mesh: meshProps.id,
+    type: 'wire',
+    offsetMultiplier: meshProps.offsetMultiplier,
+    userStep: meshProps.userStep
+  };
+
+  const variantExists = MESH_VARIANTS.find(v => v.mesh === meshProps.id && v.type === 'wire');
+
+  if (!variantExists) {
+    MESH_VARIANTS.push(variantData);
+  }
+
+  const key = makeMeshKey(meshProps.id, variantData, meshProps);
+
+  return scheduleMeshGeneration(key, {
+    paths: meshProps.paths,
+    islands: prepareIslands(meshProps.paths, meshProps.userStep),
+    userStep: meshProps.userStep,
+    offsetMultiplier: meshProps.offsetMultiplier,
+    width: meshProps.width,
+    height: meshProps.height,
+  });
+}
+
+function isLogoId(mesh: LogoId | PolyId): mesh is LogoId {
+  return mesh in LOGOS;
+}
+
 function makeMeshKey(
-  logo: LogoId,
-  variant: MeshVariant,
-  logoSpec: LogoSpec
+  mesh: MeshId,
+  variant: PreMeshVariant | DynMeshVariant,
+  specs: MeshSpecs
 ): MeshKey {
   return [
-    logo,
+    mesh,
     variant.type,
     variant.userStep,
     variant.offsetMultiplier,
-    logoSpec.width,
-    logoSpec.height
+    specs.width,
+    specs.height
   ].join('|');
 }
-
-
-// --------------------------------------------------- Mesh Regen Logic ---------------------------------------------------
-
-
-

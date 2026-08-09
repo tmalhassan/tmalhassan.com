@@ -8,7 +8,7 @@ interface Props {
 }
 
 export default function DeviceProvider({ children }: Props) {
-  const [device, setDevice] = useState(getDeviceType(window.innerHeight));
+  const [device, setDevice] = useState(getDeviceType(window.innerWidth));
   const [tier, setTier] = useState(() => {
     const s = localStorage.getItem("perf-ema");
     return s ? getDeviceTier(parseFloat(s)) : 'mid'; // default value 'mid' if no score found
@@ -42,6 +42,7 @@ export default function DeviceProvider({ children }: Props) {
       });
     };
 
+    onResize();
     setScreenDimensions();
 
     window.addEventListener("resize", onResize, { passive: true });
@@ -50,7 +51,7 @@ export default function DeviceProvider({ children }: Props) {
       window.removeEventListener("resize", onResize);
       if (resizeRafId) cancelAnimationFrame(resizeRafId);
     };
-  }, [device]);
+  }, []);
 
   const setScreenDimensions = () => {
     screenDimensionsRef.current = {
