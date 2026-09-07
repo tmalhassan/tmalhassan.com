@@ -3,11 +3,14 @@ import { useTheme } from "../../contexts/theme-context/useTheme";
 import { ALHASSAN_TEXT } from "../../components/Strokes/StrokesData";
 import { RevealText } from "../RevealText";
 import './IntroPage.css';
+import '../IncompleteSection/IncompleteSection.css';
 
 import myImage from '../../assets/pages/intro-page/my-image.webp';
 import type { PageCardsRefsTypes } from "../../types/PageCardsRefsTypes";
+import InfoIcon from "../SVGs/InfoIcon";
+import GlassGlareButton from "../GlassGlareButton/GlassGlareButton";
 
-export default function IntroPage({ refs, isHidden }: { refs: PageCardsRefsTypes; isHidden: boolean; }) {
+export default function IntroPage({ refs, isHidden, openDialog }: { refs: PageCardsRefsTypes; isHidden: boolean; openDialog: () => void }) {
   const { theme, toggleTheme } = useTheme();
   const [enableAnim, setEnableAnim] = useState(false);
 
@@ -19,9 +22,28 @@ export default function IntroPage({ refs, isHidden }: { refs: PageCardsRefsTypes
     <div className={`page-card${isHidden ? ' hidden' : ''}`} ref={refs.divRef}>
       <IntroPageBackground enableAnim={enableAnim}/>
       <div className="intro-page-elements">
+        {/* <button
+          className="incomplete-info-button"
+          title="Info button"
+          onClick={toggleTheme}
+        >
+          <InfoIcon />
+        </button> */}
+        <div className="incomplete-info-button-wrapper">
+          <GlassGlareButton 
+            buttonImage={<InfoIcon stroke={ '#bfbfbf' } />}
+            onClickHandler={openDialog}
+            highlight={true}
+            willAnimate={true}
+            triggerAnim={true}
+            animDelay={2500}
+          />
+        </div>
+      </div>
+      {/* <div className="intro-page-elements">
         <button className="theme-button" title="Theme toggle button" onClick={toggleTheme}>
         </button>
-      </div>
+      </div> */}
       {/* <div ref={refs.coverRef} className='cover'/> */}
     </div>
   )
@@ -36,49 +58,71 @@ function IntroPageBackground({ enableAnim }: { enableAnim: boolean }) {
   useEffect(() => {
     const maskContainer = maskContainerRef.current;
     const glowElement = glowElementRef.current;
-    const myImageElement = myImageRef.current
+    const myImageElement = myImageRef.current;
 
     if (!maskContainer || !glowElement || !myImageElement) return;
 
-    const rect = maskContainer.getBoundingClientRect();
-    
+    let rect = maskContainer.getBoundingClientRect();
     const glowRect = glowElement.getBoundingClientRect();
     const glowWidth = glowRect.width;
     const glowHeight = glowRect.height;
     
-    
+    // Track latest coordinates safely outside the loop
+    let latestX = 0;
+    let latestY = 0;
+    let rAFId: number | null = null;
+
     const onResize = () => {
+      rect = maskContainer.getBoundingClientRect();
       const imgRect = myImageElement.getBoundingClientRect();
+      const xPos = imgRect.left - (imgRect.width / 2.5); // (imgRect.width / 3);
+      const yPos = imgRect.top - (imgRect.height / 2);
 
-      const xPos = imgRect.left - (imgRect.width / 3);
-      const yPos = imgRect.top - (imgRect.height / 2); // (imgRect.height / 3);
-
-      // console.log('new position: ', xPos, yPos);
       updatePos(xPos, yPos);
       imagePosRef.current = { x: xPos, y: yPos };
-    }
+    };
     
     const updatePos = (xPos: number, yPos: number) => {
       glowElement.style.transform = `translate(${xPos}px, ${yPos}px)`;
-    }
+    };
+
+    // This loop runs strictly once per browser frame paint
+    const renderGlow = () => {
+      const xPos = latestX - rect.left - (glowWidth / 2);
+      const yPos = latestY - rect.top - (glowHeight / 2);
+      
+      updatePos(xPos, yPos);
+      rAFId = null; // Reset tick so next event can schedule
+    };
 
     const onPointerMove = (e: PointerEvent) => {
       if (e.pointerType !== 'mouse') return;
 
-      const xPos = e.clientX - rect.left - (glowWidth / 2);
-      const yPos = e.clientY - rect.top - (glowHeight / 2);
-      
-      updatePos(xPos, yPos);
-    }
+      // Cache the latest raw mouse position instantly
+      latestX = e.clientX;
+      latestY = e.clientY;
+
+      // If a frame calculation isn't already scheduled, schedule it
+      if (rAFId === null) {
+        rAFId = requestAnimationFrame(renderGlow);
+      }
+    };
 
     const onPointerEnter = () => glowElement.style.transitionDuration = '0s';
 
     const onPointerLeave = () => {
       console.log('pointer left!');
+      
+      // Cancel any pending frame updates so they don't overwrite the exit position
+      if (rAFId !== null) {
+        cancelAnimationFrame(rAFId);
+        rAFId = null;
+      }
+
       onResize();
       glowElement.style.transitionDuration = '0.3s';
       glowElement.style.transform = `translate(${imagePosRef.current.x}px, ${imagePosRef.current.y}px)`;
-    }
+    };
 
     onResize();
 
@@ -88,11 +132,12 @@ function IntroPageBackground({ enableAnim }: { enableAnim: boolean }) {
     window.addEventListener('resize', onResize);
 
     return () => {
+      if (rAFId !== null) cancelAnimationFrame(rAFId);
       maskContainer.removeEventListener('pointerenter', onPointerEnter);
       maskContainer.removeEventListener('pointermove', onPointerMove);
       maskContainer.removeEventListener('pointerleave', onPointerLeave);
       window.removeEventListener('resize', onResize);
-    }
+    };
   }, []);
 
   return(

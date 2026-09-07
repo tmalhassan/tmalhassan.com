@@ -92,8 +92,8 @@ export default function ThankYouPage({ ref, isHidden }: { ref: React.RefObject<H
           />
         </div>
         <div className='socials-container'>
-          <GlassGlareButton buttonImage={<LinkedInIcon stroke={theme === 'dark' ? '#ffffffa6' : '#353535cc'}/>}/>
-          <GlassGlareButton buttonImage={<EmailIcon stroke={theme === 'dark' ? '#ffffffa6' : '#353535cc'}/>}/>
+          <GlassGlareButton buttonImage={<LinkedInIcon stroke={theme === 'dark' ? '#bfbfbf' : '#353535cc'}/>}/>
+          <GlassGlareButton buttonImage={<EmailIcon stroke={theme === 'dark' ? '#bfbfbf' : '#353535cc'}/>}/>
           {/* <div className='social-button-wrapper'>
             <button>
               <LinkedInIcon stroke={theme === 'dark' ? '#ffffffa6' : '#353535cc'}/>

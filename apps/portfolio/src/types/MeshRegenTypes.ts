@@ -2,7 +2,7 @@ import type { Path64 } from "clipper2-ts";
 
 export type MeshRegenType = {
   imageData?: ImageData;
-  paths?: string[]; // ✅ optional now
+  paths?: string[];
   islands: Island[];
   userStep: number;
   offsetMultiplier: number;

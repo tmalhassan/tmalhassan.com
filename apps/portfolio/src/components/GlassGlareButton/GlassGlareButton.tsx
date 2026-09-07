@@ -11,10 +11,11 @@ interface GlassGlareButtonType {
   willAnimate: boolean;
   triggerAnim: boolean;
   animDelay: number;
+  highlight?: boolean;
 }
 
-export default function GlassGlareButton({ textLable, buttonImage, buttonStyle, textStyle, imgStyle, onClickHandler, willAnimate, triggerAnim, animDelay }: GlassGlareButtonType) {
-  const [animState, setAnimState] = useState<'waiting' | 'animating' | 'completed' | 'static'>(willAnimate ? 'waiting' : 'static');
+export default function GlassGlareButton({ textLable, buttonImage, buttonStyle, textStyle, imgStyle, onClickHandler, willAnimate, triggerAnim, animDelay, highlight = false }: GlassGlareButtonType) {
+  const [animState, setAnimState] = useState<'waiting' | 'animating' | 'completed' | 'highlight' | 'static'>(willAnimate ? 'waiting' : 'static');
   const delayTimer = useRef<number | null>(null);
   const endTimer = useRef<number | null>(null);
 
@@ -37,7 +38,7 @@ export default function GlassGlareButton({ textLable, buttonImage, buttonStyle, 
     if (animState !== 'animating') return;
 
     endTimer.current = window.setTimeout(() => {
-      setAnimState('completed');
+      setAnimState(highlight ? 'highlight' : 'completed');
     }, 500);
 
     return () => {
@@ -45,35 +46,15 @@ export default function GlassGlareButton({ textLable, buttonImage, buttonStyle, 
     };
   }, [animState]);
 
-
-
-  // useEffect(() => {
-  //   if (animState === 'static') return;
-
-  //   let delayRef: number;
-  //   let endRef: number;
-
-  //   if (triggerAnim && animState === 'waiting') {
-  //     delayRef = setTimeout(() => {
-  //       setAnimState('animating');
-  //     }, animDelay);
-  //   }
-
-  //   if (animState === 'animating') {
-  //     endRef = setTimeout(() => {
-  //       setAnimState('completed');
-  //     }, 500);
-  //   }
-
-  //   return () => {
-  //     if (delayRef) clearTimeout(delayRef);
-  //     if (endRef) clearTimeout(endRef);
-  //   }
-  // }, [triggerAnim, animState]);
+  function MarkCompleted() {
+    if (animState !== 'highlight') return;
+    
+    setAnimState('completed');
+  }
 
   return(
     <div className={`glass-button-wrapper`} data-animstate={animState} style={buttonStyle}>
-      <button onClick={onClickHandler}>
+      <button onClick={() => {MarkCompleted(); onClickHandler()}}>
         {textLable &&
           <span style={textStyle}>{textLable}</span>
         }

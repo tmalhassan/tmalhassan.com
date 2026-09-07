@@ -12,14 +12,17 @@ import { useDevice } from './contexts/device-context/useDevice';
 import ThankYouPage from './components/ThanksYouPage/ThankYouPage';
 import { bakeAllLogoColors, preloadMeshes } from './mesh/getMesh';
 import type { LogoId } from './types/MeshRegenTypes';
+import { IncompleteOverlay } from './components/IncompleteSection/IncompleteSection';
 
 export default function App() {
   const { getScreenDimensions } = useDevice();
   const [colorImages, setColorImages] = useState<Record<LogoId, ImageData> | null>(null);
   const [sectionView, setSectionView] = useState<sectionsTypes | null>(null);
   const [svTransToggle, setSVTransToggle] = useState(false);
-  // const [activePage, setActivePage] = useState(0);
-  // const cardsContainerRef = useRef<HTMLDivElement | null>(null);
+  // =============== To be removed! ===============
+  const [infoOverlayActive, setInfoOverlayActive] = useState(false);
+  const infoDialogRef = useRef<HTMLDialogElement | null>(null);
+  // ==============================================
   const introDivRef = useRef<HTMLDivElement | null>(null);
   const introCoverRef = useRef<HTMLDivElement | null>(null);
 
@@ -108,15 +111,25 @@ export default function App() {
     }, state ? 0 : 550);
   }
 
+  const openDialog = () => {
+    setInfoOverlayActive(true);
+  };  
+
   return (
     <>
       {sectionView && <SectionViewPage sectionView={sectionView} ToggleSectionView={ToggleSectionView} />}  {/* Container 2 */}
       <div className={`cards-container${svTransToggle ? ' hidden' : ''}`} inert={!!sectionView}> {/* Container 1 */}
-        <IntroPage refs={{ divRef: introDivRef, coverRef: introCoverRef }} isHidden={isHidden}/>
+        <IntroPage refs={{ divRef: introDivRef, coverRef: introCoverRef }} isHidden={isHidden} openDialog={openDialog}/>
         <AboutMePage refs={{ divRef: aboutMeDivRef, coverRef: aboutMeCoverRef}} isHidden={isHidden}/>
         <SkillsPage refs={{ divRef: skillsDivRef, coverRef: skillsCoverRef }} sectionView={sectionView} svTransToggle={svTransToggle} ToggleSectionView={ToggleSectionView} />
         <ThankYouPage ref={thankYouDivRef} isHidden={isHidden}/>
       </div>
+      {infoOverlayActive && (
+        <IncompleteOverlay
+          infoDialogRef={infoDialogRef}
+          setInfoOverlayActive={setInfoOverlayActive}
+        />
+      )}
     </>
   )
 }

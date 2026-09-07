@@ -15,7 +15,8 @@ export default function useImagesReady(srcs: string[]) {
     preloadImages(srcs).then(() => {
       if (!cancelled) {
         console.log(`${srcs.length} images were loaded successfully!!`);
-        setReady(true);}
+        setReady(true);
+      }
     });
 
     return () => {

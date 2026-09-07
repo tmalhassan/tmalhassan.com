@@ -40,7 +40,10 @@ export type SectionViewTypes = {
   sectionView: sectionsTypes | null;
   ToggleSectionView({ state, type }: { state: true; type: sectionsTypes; } | { state: false; type: null; }): void;
 }
-export type Project = 'alura' | 'hairday' | 'starleap';
+export type WebProjects = 'alura' | 'hairday' | 'meshregen';
+export type GameProjects = 'starleap';
+export type Project = WebProjects | GameProjects;
+
 export type AppCategories = 'front-end' | 'back-end' | 'npm packages' | 'design';
 
 export type AppsList = 
@@ -61,6 +64,9 @@ export type AppsList =
   'CORS' |
   'Axios' |
   'Immer' |
+  'D3 Delaunay' |
+  'Poisson Disk' |
+  'Clipper2' |
   'Illustrator' |
   'Photoshop' |
   'Audition' |
@@ -85,6 +91,9 @@ export type IconFileNames =
   'cors' |
   'axios' |
   'immer' |
+  'd3-delaunay' |
+  'poisson-disk' |
+  'clipper2-ts' |
   'adobe-illustrator' |
   'adobe-photoshop' |
   'adobe-after-effects' |

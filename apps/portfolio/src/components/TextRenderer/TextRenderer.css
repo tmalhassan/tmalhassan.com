@@ -1,11 +1,17 @@
 .paragraph-word{
-  display: inline-block;
-  transform: translateY(100%) rotateX(-15deg);
+  /* display: inline-block; */
+  transform: translateY(0%) rotateX(0deg);
   transform-origin: center bottom;
   transform-style: preserve-3d;
   translate: none;
   rotate: none;
   scale: none;
+  opacity: 100%;
+  animation: none;
+}
+.paragraph-word.animate{
+  display: inline-block;
+  transform: translateY(100%) rotateX(-15deg);
   opacity: 0%;
   animation: animateWord 1.75s cubic-bezier(0.23,1.00,0.32,1.00) forwards paused;
 }
@@ -19,6 +25,3 @@
     opacity: 100%;
   }
 }
-
-.paragraph-word.itlc{ font-style: italic; }
-.paragraph-word.bold{ font-weight: 700; }

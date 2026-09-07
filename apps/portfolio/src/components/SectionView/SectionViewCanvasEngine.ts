@@ -598,7 +598,7 @@ export class SectionViewCanvasEngine {
     // matching the old TOP-LEFT FRONT LIGHT setup: normalize({ x: -0.6, y: -0.4, z: 1 })
     const lx = -0.48507;
     const ly = -0.32338;
-    const lz = 0.80845;
+    const lz = 0.82; // 0.80845;
 
     const nx = p.fY * p.uZ - p.fZ * p.uY;
     const ny = p.fZ * p.uX - p.fX * p.uZ;

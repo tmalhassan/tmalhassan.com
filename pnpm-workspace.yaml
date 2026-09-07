@@ -2,7 +2,7 @@ packages:
   - apps/*
   - apps/alura/*
 
-onlyBuiltDependencies:
-  - bcrypt
-  - esbuild
-  - sharp
+allowBuilds:
+  bcrypt: true
+  esbuild: true
+  sharp: true
