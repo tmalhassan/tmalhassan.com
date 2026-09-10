@@ -124,11 +124,11 @@ const MESHES: Partial<Record<MeshId, MeshSpecs>> = {
 };
 
 const PRE_MESH_VARIANTS: PreMeshVariant[] = [
-  { mesh: 'alura', type: 'wire', userStep: 0.5, offsetMultiplier: 3 },
+  // { mesh: 'alura', type: 'wire', userStep: 0.5, offsetMultiplier: 3 },
   { mesh: 'alura', type: 'glass', userStep: 0.1, offsetMultiplier: 3 },
-  { mesh: 'hairday', type: 'wire', userStep: 0.25, offsetMultiplier: 2 },
+  // { mesh: 'hairday', type: 'wire', userStep: 0.25, offsetMultiplier: 2 },
   { mesh: 'hairday', type: 'glass', userStep: 0.12, offsetMultiplier: 3 },
-  { mesh: 'meshregen', type: 'wire', userStep: 0.25, offsetMultiplier: 2 },
+  // { mesh: 'meshregen', type: 'wire', userStep: 0.25, offsetMultiplier: 2 },
   { mesh: 'meshregen', type: 'glass', userStep: 0.12, offsetMultiplier: 3 },
 ];
 

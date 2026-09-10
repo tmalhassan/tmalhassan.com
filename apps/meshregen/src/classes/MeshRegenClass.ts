@@ -18,8 +18,8 @@ export default class MeshRegenClass {
 
 
   // --- Final Result Data --- //
-  private meshPieces: MeshPiece[] = [];
-  private debugData = [];
+  public meshPieces: MeshPiece[] = [];
+  public debugData = [];
 
   
   constructor(
@@ -28,6 +28,11 @@ export default class MeshRegenClass {
     rawPathDs: string[],
     imageData?: ImageData,
   ) {
+    this.spacing = userSpacing * 10;
+    this.ringOffsetMultiplier = ringOffsetMultiplier;
+    this.rawPathDs = rawPathDs;
+    this.imageData = imageData;
+
     // -- Initializing Tool -- //
     this.generateMesh(
       userSpacing,
@@ -42,12 +47,12 @@ export default class MeshRegenClass {
   //              React State Triggers              //
   //================================================//
 
-  public async generateMesh(
+  public generateMesh = (
     userSpacing: number,
     ringOffsetMultiplier: number,
     rawPathDs: string[],
     imageData?: ImageData,
-  ) {
+  ) => {
     this.spacing = userSpacing * 10;
     this.ringOffsetMultiplier = ringOffsetMultiplier;
     this.rawPathDs = rawPathDs;
@@ -64,13 +69,14 @@ export default class MeshRegenClass {
 
     // 4. Assimble the debug tools' required data
 
+    console.log('flagged as ready! - Total: ', this.meshPieces.length);
   }
 
   //================================================//
   //           Main Mesh Assembly Methods           //
   //================================================//
   
-  private prepareIslands() {
+  private prepareIslands = () => {
     const { rawPathDs, spacing } = this;
 
     const subpaths = rawPathDs.flatMap(pathD =>
@@ -82,15 +88,15 @@ export default class MeshRegenClass {
     );
 
     this.clipperIslands = subpaths.map(island =>
-      this.islandToClipperPoly(island, spacing * 10)
+      this.islandToClipperPoly(island, spacing)
     );
   }
 
-  private generateIslandBuffers() {
+  private generateIslandBuffers = () => {
     const { CLIPPER_SCALE, spacing, clipperIslands, ringOffsetMultiplier, samplePath64ByDistance } = this;
 
     this.islandBuffers = clipperIslands.map((island) => {
-      const offset = CLIPPER_SCALE * ringOffsetMultiplier * 20 * spacing;
+      const offset = CLIPPER_SCALE * ringOffsetMultiplier * 2 * spacing;
 
       const boundaryPts: Point[] = [];
       const outerBfrPts: Point[] = [];
@@ -139,7 +145,7 @@ export default class MeshRegenClass {
     });
   }
 
-  private generateMeshPieces() {
+  private generateMeshPieces = () => {
     const { CLIPPER_SCALE, imageData } = this;
 
     const pieces: MeshPiece[] = [];
@@ -252,13 +258,13 @@ export default class MeshRegenClass {
   //            Clipper2 Implementations            //
   //================================================//
 
-  private islandToClipperPoly(
+  private islandToClipperPoly = (
     island: {
       outer: string;
       holes: string[];
     },
     spacing: number
-  ): Island {
+  ): Island => {
     // --- outer ring ---
     let outer = this.svgPathToRing(island.outer, spacing);
     outer = this.ensureWinding(outer, false); // CCW
@@ -275,12 +281,12 @@ export default class MeshRegenClass {
     };
   }
 
-  private generateBuffers(
+  private generateBuffers = (
     island: Island,
     outerDist: number,
     boundaryDist: number,
     innerDist: number
-  ) {
+  ) => {
     const { islandToPaths, pathsToIsland } = this;
 
     const co = new ClipperOffset();
@@ -307,7 +313,7 @@ export default class MeshRegenClass {
     };
   }
 
-  private generateInteriorPoints(interiorBuffer: Island): Point[] {
+  private generateInteriorPoints = (interiorBuffer: Island): Point[] => {
     const { CLIPPER_SCALE, spacing } = this;
 
     const bbox = this.getPaddedBoundsWorld(interiorBuffer, CLIPPER_SCALE, spacing);
@@ -336,10 +342,10 @@ export default class MeshRegenClass {
       .filter(point => this.pointInIsland(point, interiorBuffer))
   }
 
-  private pointInIsland(
+  private pointInIsland = (
     pt: Point,
     island: Island
-  ): boolean {
+  ): boolean => {
     const { CLIPPER_SCALE } = this;
 
     const p64 = {
@@ -360,13 +366,13 @@ export default class MeshRegenClass {
     return true;
   }
 
-  private clipTriangleToIsland(
+  private clipTriangleToIsland = (
     tri: Point[],
     island: Island,
-  ): Path64[] {
+  ): Path64[] => {
     const islandPaths = this.islandToClipperPaths(island);
 
-    const subject: Paths64 = [tri.map((point) => this.toIntPoint(point))];// [triangleToPath64(tri, CLIPPER_SCALE)];
+    const subject: Paths64 = [tri.map(this.toIntPoint)];// [triangleToPath64(tri, CLIPPER_SCALE)];
     const solution: Paths64 = [];
 
     const clipper = new Clipper64();
@@ -383,7 +389,7 @@ export default class MeshRegenClass {
     return solution; // ← polygon fragments, NOT triangles
   }
 
-  private islandToClipperPaths(island: Island): Paths64 {
+  private islandToClipperPaths = (island: Island): Paths64 => {
     return [island.outer, ...island.holes];
   }
 
@@ -391,7 +397,7 @@ export default class MeshRegenClass {
   //                   D3 Delaunay                  //
   //================================================//
 
-  private samplePath64ByDistance(path: Path64): Point[] {
+  private samplePath64ByDistance = (path: Path64): Point[] => {
     const { spacing, CLIPPER_SCALE } = this;
 
     const pts = this.path64ToPoints(path, CLIPPER_SCALE);
@@ -434,25 +440,25 @@ export default class MeshRegenClass {
   //                General Utilities               //
   //================================================//
 
-  private splitPathD(d: string): string[] {
+  private splitPathD = (d: string): string[] => {
     return d
       .split(/(?=[Mm])/)
       .map(s => s.trim())
       .filter(Boolean);
   }
 
-  private isPointInsidePath(
+  private isPointInsidePath = (
     ctx: CanvasRenderingContext2D,
     pathD: string,
     point: Point
-  ): boolean {
+  ): boolean => {
     const path = new Path2D(pathD);
     return ctx.isPointInPath(path, point.x, point.y, "nonzero");
   }
 
-  private buildIslandSubpaths(
+  private buildIslandSubpaths = (
     subpaths: string[]
-  ): { outer: string; holes: string[]; islandPath: string }[] {
+  ): { outer: string; holes: string[]; islandPath: string }[] => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d")!;
 
@@ -492,14 +498,14 @@ export default class MeshRegenClass {
     }));
   }
 
-  private getSubpathTestPoint(d: string): Point {
+  private getSubpathTestPoint = (d: string): Point => {
     const match = d.match(/M\s*([-\d.]+)[ ,]([-\d.]+)/i);
 
     if (!match) throw new Error("Invalid subpath");
     return { x: +match[1], y: +match[2] };
   }
 
-  private pathToAbsoluteD(d: string): string {
+  private pathToAbsoluteD = (d: string): string => {
     const svg = document.createElementNS(
       "http://www.w3.org/2000/svg",
       "svg"
@@ -520,7 +526,7 @@ export default class MeshRegenClass {
     return normalized;
   }
 
-  private svgPathToRing(d: string, spacing: number): Point[] {
+  private svgPathToRing = (d: string, spacing: number): Point[] => {
     const p = document.createElementNS(
       "http://www.w3.org/2000/svg",
       "path"
@@ -530,7 +536,7 @@ export default class MeshRegenClass {
     const len = p.getTotalLength();
     if (!isFinite(len) || len === 0) return [];
 
-    const count = Math.max(3, Math.floor(len / spacing));
+    const count = Math.max(3, Math.floor(len / spacing * 10));
     const pts: Point[] = [];
 
     for (let i = 0; i < count; i++) {
@@ -541,11 +547,11 @@ export default class MeshRegenClass {
     return pts;
   }
 
-  private getPaddedBoundsWorld(
+  private getPaddedBoundsWorld = (
     island: Island,
     scale: number,
     padding: number
-  ) {
+  ) => {
     const b64 = getBounds(island.outer);
 
     return {
@@ -556,14 +562,14 @@ export default class MeshRegenClass {
     };
   }
 
-  private ensureWinding(ring: Point[], clockwise: boolean) {
+  private ensureWinding = (ring: Point[], clockwise: boolean) => {
     const area = this.calculateSignedArea(ring);
     const isCW = area < 0;
 
     return isCW === clockwise ? ring : [...ring].reverse();
   }
 
-  private toIntPoint(p: Point): Point {
+  private toIntPoint = (p: Point): Point => {
     const { CLIPPER_SCALE } = this;
 
     return {
@@ -572,7 +578,7 @@ export default class MeshRegenClass {
     };
   }
 
-  private calculateSignedArea(pts: Point[]): number {
+  private calculateSignedArea = (pts: Point[]): number => {
     let a = 0;
     for (let i = 0; i < pts.length; i++) {
       const p = pts[i];
@@ -582,18 +588,18 @@ export default class MeshRegenClass {
     return a * 0.5;
   }
 
-  private path64ToPoints(path: Path64, scale: number): Point[] {
+  private path64ToPoints = (path: Path64, scale: number): Point[] => {
     return path.map(p => ({
       x: p.x / scale,
       y: p.y / scale,
     }));
   }
 
-  private islandToPaths(island: Island): Path64[] {
+  private islandToPaths = (island: Island): Path64[] => {
     return [island.outer, ...island.holes];
   }
 
-  private pathsToIsland(paths: Path64[]): Island {
+  private pathsToIsland = (paths: Path64[]): Island => {
     if (paths.length === 0) {
       return { outer: [], holes: [] };
     }
@@ -613,11 +619,11 @@ export default class MeshRegenClass {
     return { outer, holes };
   }
 
-  private classifyTriangle(
+  private classifyTriangle = (
     tri: Point[],
     island: Island,
     innerBuffer: Island,
-  ): TriangleClass {
+  ): TriangleClass => {
     let inInnerCount = 0;
     let inIslandCount = 0;
 
@@ -646,7 +652,7 @@ export default class MeshRegenClass {
     return 'PARTLY';
   }
 
-  private calculateCentroid(pts: Point[]): Point {
+  private calculateCentroid = (pts: Point[]): Point => {
     let x = 0, y = 0;
     for (const p of pts) {
       x += p.x;
@@ -655,72 +661,86 @@ export default class MeshRegenClass {
     return { x: x / pts.length, y: y / pts.length };
   }
 
-  private samplePointsForPiece(points: Point[], centroid: Point): Point[] {
-    if (points.length === 3) {
-      const [a, b, c] = points;
-      return [
-        centroid,
-        { x: (a.x + centroid.x) / 2, y: (a.y + centroid.y) / 2 },
-        { x: (b.x + centroid.x) / 2, y: (b.y + centroid.y) / 2 },
-        { x: (c.x + centroid.x) / 2, y: (c.y + centroid.y) / 2 },
-      ];
-    }
+  private samplePointsForPiece = (points: Point[], centroid: Point): Point[] => {
+  // Push samples closer to the interior centroid (e.g., 25% out from center instead of 50%)
+  // This completely stops samples from stepping on outer border strokes/edges.
+  const shrinkFactor = 0.25; 
 
-    const samples: Point[] = [centroid];
-
-    for (const p of points) {
-      samples.push({
-        x: (p.x + centroid.x) * 0.5,
-        y: (p.y + centroid.y) * 0.5
-      });
-    }
-
-    // console.log(samples);
-
-    return samples;
+  if (points.length === 3) {
+    const [a, b, c] = points;
+    return [
+      centroid,
+      { x: centroid.x + (a.x - centroid.x) * shrinkFactor, y: centroid.y + (a.y - centroid.y) * shrinkFactor },
+      { x: centroid.x + (b.x - centroid.x) * shrinkFactor, y: centroid.y + (b.y - centroid.y) * shrinkFactor },
+      { x: centroid.x + (c.x - centroid.x) * shrinkFactor, y: centroid.y + (c.y - centroid.y) * shrinkFactor },
+    ];
   }
 
-  private sampleColor(
-    imageData: ImageData,
-    p: Point
-  ): [number, number, number, number] {
-    const x = Math.floor(p.x);
-    const y = Math.floor(p.y);
+  const samples: Point[] = [centroid];
 
-    const i = (y * imageData.width + x) * 4;
-    const d = imageData.data;
-
-    return [d[i], d[i + 1], d[i + 2], d[i + 3]];
+  for (const p of points) {
+    samples.push({
+      x: centroid.x + (p.x - centroid.x) * shrinkFactor,
+      y: centroid.y + (p.y - centroid.y) * shrinkFactor
+    });
   }
 
-  private averageColors(colors: number[][]): PolyColor {
-    const n = colors.length;
-    let r = 0, g = 0, b = 0, a = 0;
+  return samples;
+}
 
-    for (const c of colors) {
-      r += c[0];
-      g += c[1];
-      b += c[2];
-      a += c[3];
-    }
+private sampleColor = (
+  imageData: ImageData,
+  p: Point
+): [number, number, number, number] => {
+  // Clamp boundaries safely so it never returns undefined/NaN
+  const x = Math.max(0, Math.min(imageData.width - 1, Math.floor(p.x)));
+  const y = Math.max(0, Math.min(imageData.height - 1, Math.floor(p.y)));
 
-    return {
-      r: r / n,
-      g: g / n,
-      b: b / n,
-      a: a / n
-    };
+  const i = (y * imageData.width + x) * 4;
+  const d = imageData.data;
+
+  return [d[i], d[i + 1], d[i + 2], d[i + 3]];
+}
+
+private averageColors = (colors: number[][]): PolyColor => {
+  let totalWeight = 0;
+  let r = 0, g = 0, b = 0, a = 0;
+
+  for (const c of colors) {
+    const alphaWeight = c[3] / 255; // Use c[3] for the Alpha channel
+
+    // Completely ignore empty background samples
+    if (alphaWeight === 0) continue; 
+
+    r += c[0] * alphaWeight; // c[0] = Red
+    g += c[1] * alphaWeight; // c[1] = Green
+    b += c[2] * alphaWeight; // c[2] = Blue
+    a += c[3];               // Accumulate raw Alpha channel
+    totalWeight += alphaWeight;
   }
 
-  private bakePieceColors(
-    imageData: ImageData,
-    points: Point[],
-    centroid: Point
-  ): PolyColor {
-    const samples = this.samplePointsForPiece(points, centroid);
-
-    const colors = samples.map(p => this.sampleColor(imageData, p));
-    return this.averageColors(colors);
+  // Fallback if the points accidentally hit entirely empty background spaces
+  if (totalWeight === 0) {
+    return { r: 0, g: 0, b: 0, a: 0 };
   }
+
+  return {
+    r: r / totalWeight,
+    g: g / totalWeight,
+    b: b / totalWeight,
+    a: a / colors.length
+  };
+}
+
+private bakePieceColors = (
+  imageData: ImageData,
+  points: Point[],
+  centroid: Point
+): PolyColor => {
+  const samples = this.samplePointsForPiece(points, centroid);
+  const colors = samples.map(p => this.sampleColor(imageData, p));
+  return this.averageColors(colors);
+}
+
 
 }

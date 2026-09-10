@@ -233,6 +233,8 @@ function ConfigSlider({
   step: number, 
   onChangeAction: (val: number) => void;
 }) {
+  const [currValue, setCurrValue] = useState(value);
+
   return (
     <div className='config-item-container'>
       <span>{`${title}:`}</span>
@@ -241,14 +243,15 @@ function ConfigSlider({
           className='styled-slider'
           type="range" 
           id={id} 
-          value={value} 
+          value={currValue} 
           min={min} 
           max={max} 
           step={step} 
-          onChange={(e) => onChangeAction(Number(e.target.value))}
+          onChange={(e) => setCurrValue(Number(e.target.value))}
+          onPointerUp={() => onChangeAction(currValue)}
         />
       </div>
-      <span>{value}</span>
+      <span>{currValue}</span>
     </div>
   )
 }
