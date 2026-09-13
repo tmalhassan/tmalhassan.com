@@ -17,18 +17,25 @@ export type Point = {
 
 export type TriangleClass = 'FULLY' | 'PARTLY' | 'OUTSIDE';
 
-export type PolyColor = { r: number; g: number; b: number; a: number }
+export type PolyColorRGB = { r: number; g: number; b: number; a: number }
+export type PolyColorHSLA = { h: number; s: number; l: number; a: number }
 
 export type MeshPiece = {
   id: number;
   points: Point[];
+  bbox: {
+    minX: number;
+    maxX: number;
+    minY: number;
+    maxY: number;
+  };
   triangleIndex: number;
   halfedges: number[];
   pointIds: number[];
   neighbors: number[];
   state: TriangleClass;
   centroid: Point;
-  color: PolyColor;
+  color: PolyColorRGB | PolyColorHSLA;
 };
 
 export type MeshIslandProps = {
@@ -41,12 +48,12 @@ export type MeshIslandProps = {
 
 export type IslandDebug = {
   IslandPieces: IslandDebugPoints[];
-  islandPath: Path2D;
+  // islandPath: Path2D;
 }
 
 export type IslandDebugPoints = {
-  innerBfrPts: Path64;
-  outerBfrPts: Path64;
+  innerBfrPts: Point[];
+  outerBfrPts: Point[];
 }
 
 export type Island = {

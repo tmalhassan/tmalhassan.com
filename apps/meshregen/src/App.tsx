@@ -1,19 +1,17 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
 import MeshRegenClass from './classes/MeshRegenClass'
 import ConfigMenu from './components/ConfigMenu/ConfigMenu';
-import './App.css'
-import type { SVGNames } from './types/SVGDataTypes';
+import type { ActiveSVGState, SVGAdjustAction } from './types/SVGDataTypes';
 import type { DebugAction, DebugChildField, debugState } from './types/DebugToolTypes';
 import RenderCanvas from './components/RenderCanvas/RenderCanvas';
-import type { MeshPiece } from './types/MeshRegenTypes';
-import { SVGS_DATA } from './data/SVGsData';
+import type { IslandDebugPoints, MeshPiece } from './types/MeshRegenTypes';
+import { SVG_PRESETS } from './data/SVGsData';
 import { rasterizeSVG } from './utilities/rasterizeSVG';
+import './App.css'
 
 export default function App() {
-  const [selectedSVG, setSelectedSVG] = useState<SVGNames>('alura'); // from pre-defined SVGs
-  const [spacing, setSpacing] = useState(SVGS_DATA[selectedSVG].spacing);
-  const [offsetMultiplier, setOffsetMultiplier] = useState(SVGS_DATA[selectedSVG].offsetMultiplier);
-  // const [paths, setPaths] = useState<string[]>([]); // to be extracted from uploaded svg
+  const [activeSVG, dispatchSVG] = useReducer(svgWorkspaceReducer, initialWorkspaceState);
+  const [strokeOpacity, setStrokeOpacity] = useState(0.25);
   const [uploadedSVG, setUploadedSVG] = useState<File | undefined>(undefined); // uploaded SVG file
   // const [imageData, setImageData] = useState<ImageData | undefined>(undefined); // to be processed from selected or uploaded svg if available
 
@@ -25,7 +23,7 @@ export default function App() {
 
   // == Result data (for render) == //
   const meshPiecesRef = useRef<MeshPiece[]>([]);
-  const debugDataRef = useRef<string[]>([]);
+  const buffersDataRef = useRef<IslandDebugPoints[]>([]);
   // ============================== //
 
   const [meshVersion, setMeshVersion] = useState(0);
@@ -34,9 +32,9 @@ export default function App() {
     let cancelled = false;
 
     const generate = async () => {
-      const svg = SVGS_DATA[selectedSVG];
+      const svg = activeSVG;
 
-      let imageData = imageDataCacheRef.current.get(selectedSVG);
+      let imageData = imageDataCacheRef.current.get(activeSVG.selectedSVG);
 
       if (!imageData && svg.src) {
         imageData = await rasterizeSVG(
@@ -47,7 +45,7 @@ export default function App() {
 
         if (cancelled) return;
 
-        imageDataCacheRef.current.set(selectedSVG, imageData);
+        imageDataCacheRef.current.set(activeSVG.selectedSVG, imageData);
       }
 
       if (cancelled) return;
@@ -56,24 +54,26 @@ export default function App() {
 
       if (!meshRegenInstance) {
         meshRegenInstance = new MeshRegenClass(
-          spacing,
-          offsetMultiplier,
+          svg.spacing,
+          svg.offset,
           svg.paths,
-          imageData
+          imageData,
+          'HSL'
         );
 
         meshRegenRef.current = meshRegenInstance;
       } else {
         meshRegenInstance.generateMesh(
-          spacing,
-          offsetMultiplier,
+          svg.spacing,
+          svg.offset,
           svg.paths,
-          imageData
+          imageData,
+          'HSL'
         );
       }
 
       meshPiecesRef.current = meshRegenInstance.meshPieces;
-      debugDataRef.current = meshRegenInstance.debugData;
+      buffersDataRef.current = meshRegenInstance.buffersData;
 
       setMeshVersion(version => version + 1);
     };
@@ -83,23 +83,23 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [selectedSVG, spacing, offsetMultiplier]);
+  }, [activeSVG]);
 
   return(
     <>
       <RenderCanvas
         meshPiecesRef={meshPiecesRef}
-        debugDataRef={debugDataRef}
+        buffersDataRef={buffersDataRef}
         debugTools={debugTools}
         meshVersion={meshVersion}
+        colorsActive={colorsActive}
+        strokeOpacity={strokeOpacity}
       />
       <ConfigMenu
-        spacing={spacing}
-        setSpacing={setSpacing}
-        offsetMultiplier={offsetMultiplier}
-        setOffsetMultiplier={setOffsetMultiplier}
-        selectedSVG={selectedSVG}
-        setSelectedSVG={setSelectedSVG}
+        activeSVG={activeSVG}
+        dispatchSVG={dispatchSVG}
+        strokeOpacity={strokeOpacity}
+        setStrokeOpacity={setStrokeOpacity}
         uploadedSVG={uploadedSVG}
         setUploadedSVG={setUploadedSVG}
         colorsActive={colorsActive}
@@ -113,11 +113,11 @@ export default function App() {
 
 const initialDebugState: debugState = {
   enableDebug: false, // Parent toggle
-  outerBuffer: true,
-  innerBuffer: true,
-  centroids: true,
-  neighbors: true,
-  clipRegions: true,
+  outerBuffer: false,
+  innerBuffer: false,
+  centroids: false,
+  neighbors: false,
+  clipRegions: false,
 };
 
 function debugReducer(state: debugState, action: DebugAction): debugState {
@@ -130,7 +130,7 @@ function debugReducer(state: debugState, action: DebugAction): debugState {
         innerBuffer: newValue,
         centroids: newValue,
         neighbors: newValue,
-        clipRegions: newValue,
+        clipRegions: false,
       };
     }
 
@@ -154,6 +154,50 @@ function debugReducer(state: debugState, action: DebugAction): debugState {
 
     case 'RESET':
       return initialDebugState;
+
+    default:
+      return state;
+  }
+}
+
+
+const initialWorkspaceState: ActiveSVGState = {
+  selectedSVG: 'meshregen',
+  ...SVG_PRESETS['meshregen'],
+};
+
+function svgWorkspaceReducer(state: ActiveSVGState, action: SVGAdjustAction): ActiveSVGState {
+  switch (action.type) {
+    case 'CHANGE_SVG': {
+      const nextSVGName = action.payload;
+      const defaultPresets = SVG_PRESETS[nextSVGName];
+
+      // Instantly drop old adjustments and load the new SVG config
+      return {
+        selectedSVG: nextSVGName,
+        ...defaultPresets, 
+      };
+    }
+
+    case 'ADJUST_VALUE': {
+      // Keeps everything intact, but sets 'spacing' or 'offset' safely
+      return {
+        ...state,
+        [action.payload.field]: action.payload.value,
+      };
+    }
+
+    case 'UPDATE_PATHS': {
+      return {
+        ...state,
+        paths: action.payload,
+      };
+    }
+
+    case 'RESET': {
+      // Resets the workspace back to whatever the default starting point was
+      return initialWorkspaceState;
+    }
 
     default:
       return state;

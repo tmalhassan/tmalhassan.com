@@ -1,8 +1,10 @@
 packages:
-  - apps/*
-  - apps/alura/*
+  - "apps/*"
+  - "apps/alura/apps/*"
+  - "apps/alura/server"
 
 allowBuilds:
+  '@swc/core': false
   bcrypt: true
   esbuild: true
   sharp: true

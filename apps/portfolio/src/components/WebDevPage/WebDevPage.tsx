@@ -95,7 +95,7 @@ export default function WebDeveloperPage({ sectionViewPageRef, activeProject, se
     const viewWebsiteButton = viewWebsiteButtonRef.current;
     if (!projWrapElement || !viewWebsiteButton) return;
 
-    const observer = new IntersectionObserver((entries, obs) => {
+    const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         const targetElement = entry.target;
         
@@ -200,11 +200,12 @@ export default function WebDeveloperPage({ sectionViewPageRef, activeProject, se
         </div>
         <AboutProjectSection activeProject={activeProject} />
         <div className='wp-project-preview-container'>
-          {Object.values(PROJECTS_DATA[activeProject].sections).map(({ title, shortDesc, fullDesc, image }, i) => (
+          {Object.values(PROJECTS_DATA[activeProject].sections).map(({ title, shortDesc, fullDesc, media, mediaType }, i) => (
             <FeatureSectionWithImage
               key={`${activeProject}-${i}`}
               title={title}
-              image={image}
+              mediaType={mediaType}
+              media={media}
               shortDesc={shortDesc}
               fullDesc={fullDesc}
               activeProject={activeProject}
@@ -233,7 +234,7 @@ interface FeatureSectionType {
   fullDesc: ContentBlock[];
 }
 
-function FeatureSectionWithImage({ title, shortDesc, fullDesc, image }: FeatureSectionType & { image: string; activeProject: WebProjects }) {
+function FeatureSectionWithImage({ title, shortDesc, fullDesc, media, mediaType }: FeatureSectionType & { mediaType: 'image' | 'video', media: string; activeProject: WebProjects }) {
   const { theme } = useTheme();
   const [isLoaded, setIsLoaded] = useState(false);
   const [isSpinnerMounted, setIsSpinnerMounted] = useState(true);
@@ -318,13 +319,19 @@ function FeatureSectionWithImage({ title, shortDesc, fullDesc, image }: FeatureS
             <span className='ls' />
           </span>
         )}
-        <img 
-          src={image} 
-          loading='lazy' 
-          alt="section image" 
-          onLoad={() => setIsLoaded(true)} 
-          data-fadein={isLoaded} 
-        />
+        {mediaType === 'image' ?
+          <img 
+            src={media} 
+            loading='lazy' 
+            alt="section image" 
+            onLoad={() => setIsLoaded(true)} 
+            data-fadein={isLoaded} 
+            />
+          :
+          <video data-fadein={isLoaded} autoPlay loop muted playsInline onLoadedData={() => setIsLoaded(true)}>
+            <source src={media} type='video/mp4' />
+          </video>
+        }
       </div>
     </div>
   )

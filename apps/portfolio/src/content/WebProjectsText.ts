@@ -1,13 +1,25 @@
 import type { WebProjects } from "../types/SectionsTypes"
 import type { ContentBlock } from "../types/TextBlockContent"
+
 import aluraSec1 from '../assets/pages/web-dev-page/alura/section1.webp';
+import aluraSec2 from '../assets/pages/web-dev-page/alura/section2.mp4';
+import aluraSec3 from '../assets/pages/web-dev-page/alura/section3.mp4';
+import aluraSec4 from '../assets/pages/web-dev-page/alura/section4.mp4';
+
+import meshReSec1 from '../assets/pages/web-dev-page/meshregen/section1.webp';
+import meshReSec2 from '../assets/pages/web-dev-page/meshregen/section2.mp4';
+import meshReSec3 from '../assets/pages/web-dev-page/meshregen/section3.mp4';
+import meshReSec4 from '../assets/pages/web-dev-page/meshregen/section4.mp4';
+import meshReSec5 from '../assets/pages/web-dev-page/meshregen/section5.webp';
+
 import hairdaySec1 from '../assets/pages/web-dev-page/hairday/section1.webp';
 
 type ProjectsType = Record<WebProjects, {
   name: string, 
   about: ContentBlock[],
   sections: {
-    image: string,
+    mediaType: 'image' | 'video',
+    media: string,
     title: string,
     shortDesc: string,
     fullDesc: ContentBlock[]
@@ -23,9 +35,9 @@ export const PROJECTS_DATA: ProjectsType = {
         content: `Alura began as a ground-up rework of an e-commerce platform built for the Sudanese market, where conventional payment methods weren't readily available. I integrated Bank of Khartoum's Bankak services as a local alternative to cash on delivery. This integration was the starting point of a complete overhaul of the legacy system and a rebuild on new solid grounds.`
       },
     ],
-    sections: [
-      {
-        image: aluraSec1,
+    sections: [{
+        mediaType: 'image',
+        media: aluraSec1,
         title: `A User Friendly, Responsive Design`,
         shortDesc: `Whether you're traveling or working from your desktop, manage products and orders effortlessly from any device. The admin panel was built to adapt to any screen size — phone, tablet, or laptop — while maintaining a clean layout and consistent performance. You can even switch between light and dark themes at any moment for a personalized experience.`,
         fullDesc: [
@@ -46,7 +58,8 @@ export const PROJECTS_DATA: ProjectsType = {
         ]
       },
       {
-        image: aluraSec1,
+        mediaType: 'video',
+        media: aluraSec2,
         title: `Product Management & Inventory Control`,
         shortDesc: `Easily manage every aspect of your store's products — from titles and prices to stock levels and images — all in one place. Add, edit, or remove products with confidence, knowing every change is synced across your system in real time. The inventory automatically updates when sales occur, helping you stay organized and avoid overselling.`,
         fullDesc: [
@@ -65,7 +78,8 @@ export const PROJECTS_DATA: ProjectsType = {
         ]
       },
       {
-        image: aluraSec1,
+        mediaType: 'video',
+        media: aluraSec3,
         title: `Security & Performance`,
         shortDesc: `Security and performance were considered throughout the application, from protecting user accounts and sessions to validating every request before it reaches the database. The system is designed to keep sensitive data secure while remaining responsive and efficient.`,
         fullDesc: [
@@ -86,7 +100,8 @@ export const PROJECTS_DATA: ProjectsType = {
         ]
       },
       {
-        image: aluraSec1,
+        mediaType: 'video',
+        media: aluraSec4,
         title: `Optimized Image & Media Management`,
         shortDesc: `Manage product images effortlessly with a simple drag-and-drop interface. Add, remove, replace, or rearrange images with ease, while automatic thumbnail generation keeps browsing fast and responsive — even with image-heavy products.`,
         fullDesc: [
@@ -119,9 +134,9 @@ export const PROJECTS_DATA: ProjectsType = {
         content: `Well... *insert SpongeBob's 2000 years later meme*, and with an unhealthy amount of coffee, MeshRegen was born. What started as a small idea for a logo loading animation became the core of this portfolio website. It is, without a doubt, one of the coolest projects that I've worked on.`
       }
     ],
-    sections: [
-      {
-        image: aluraSec1,
+    sections: [{
+        mediaType: 'image',
+        media: meshReSec1,
         title: `Procedural SVG Mesh Generation`,
         shortDesc: `Turn any SVG path into a procedural mesh with adjustable point density. Every mesh is generated from scratch, creating a unique triangulation while preserving the overall shape of the original design.`,
         fullDesc: [
@@ -141,7 +156,8 @@ export const PROJECTS_DATA: ProjectsType = {
         ]
       },
       {
-        image: aluraSec1,
+        mediaType: 'video',
+        media: meshReSec2,
         title: `Controlled Randomness & Point Distribution`,
         shortDesc: `Generate naturally varied meshes without letting random points cluster together. Control the spacing between points to influence the density, size, and overall character of the resulting triangulation.`,
         fullDesc: [
@@ -161,9 +177,10 @@ export const PROJECTS_DATA: ProjectsType = {
         ]
       },
       {
-        image: aluraSec1,
+        mediaType: 'video',
+        media: meshReSec3,
         title: `Shape-Aware Triangulation`,
-        shortDesc: `Generate meshes that follow the exact shape of the original SVG instead of simply filling it with triangles. How do we ensure the triangles adjust to teh SVG's path? Simply by clipping the triangles. But hold on! It goes far beyond that.`,
+        shortDesc: `Generate meshes that follow the exact shape of the original SVG instead of simply filling it with triangles. How do we ensure the triangles adjust to the SVG's path? Simply by clipping the triangles. But hold on! It goes far beyond that.`,
         fullDesc: [
           {
             type: 'paragraph',
@@ -180,7 +197,8 @@ export const PROJECTS_DATA: ProjectsType = {
         ]
       },
       {
-        image: aluraSec1,
+        mediaType: 'video',
+        media: meshReSec4,
         title: `Interactive Controls & Performance`,
         shortDesc: `Experiment with mesh generation in real time. Adjust point spacing and boundary offsets, regenerate the mesh instantly, and see how each parameter affects the geometry, triangle count, and performance.`,
         fullDesc: [
@@ -200,7 +218,8 @@ export const PROJECTS_DATA: ProjectsType = {
         ]
       },
       {
-        image: aluraSec1,
+        mediaType: 'image',
+        media: meshReSec5,
         title: `What's Next for MeshRegen?`,
         shortDesc: `MeshRegen is already capable of generating complex shape-aware meshes, but there are plenty of ways I'd like to take it further.`,
         fullDesc: [
@@ -225,25 +244,26 @@ export const PROJECTS_DATA: ProjectsType = {
     about: [
       {
         type: 'paragraph',
-        content: `Hair Day Salon was created as a final assessment for the Meta Front-End Developer course. The goal was simple: design and build a polished landing page for a fictional salon offering hair styling, hair dyeing, makeup, and nail art.`
+        content: `Hair Day Salon was created as a final assessment for the Meta Front-End Developer course. The assignment was to design and build a landing page for a fictional salon offering hair styling, hair dyeing, makeup, and nail art.`
       },
     ],
-    sections: [
-      {
-        image: hairdaySec1,
-        title: `Design & Responsive Layout`,
-        shortDesc: `The page was built from scratch using HTML, CSS, and JavaScript, with the main focus on creating a clean and inviting experience that reflects the salon's services.`,
+    sections: [{
+        mediaType: 'image',
+        media: hairdaySec1,
+        title: `Design & Frontend Implementation`,
+        shortDesc: `With a simple brief and a limited timeframe, I focused on creating a polished desktop experience that gives the salon a welcoming and visually appealing identity.`,
         fullDesc: [
           {
             type: 'paragraph',
-            content: ""
+            content: "The page was built from scratch using #HTML#, #CSS#, and #JavaScript#, with an emphasis on turning a straightforward service list into an engaging visual experience:"
           },
           {
             type: 'ulist',
             content: [
-              `~Visual~ ~Hierarchy:~ \u00A0 Carefully structured typography, spacing, imagery, and content sections to guide visitors through the page.`,
-              `~Responsive~ ~Design:~ \u00A0 Adapted the layout for different screen sizes while keeping the overall visual balance intact.`,
-              `~Interactive~ ~Elements:~ \u00A0 Added lightweight JavaScript interactions to make the page feel more dynamic without relying on external frameworks.`,
+              `~Visual~ ~Hierarchy:~ \u00A0 Structured typography, spacing, imagery, and content to naturally guide visitors through the page.`,
+              `~Brand~ ~Presentation:~ \u00A0 Designed the visual style around the salon's services to create a cohesive and inviting aesthetic.`,
+              `~Layout~ ~&~ ~Composition:~ \u00A0 Carefully balanced sections and content to make effective use of the desktop viewport.`,
+              `~Interactive~ ~Elements:~ \u00A0 Added lightweight #JavaScript# interactions to bring the page beyond a purely static design.`,
             ]
           },
         ]

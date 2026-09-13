@@ -1,18 +1,20 @@
 import { useEffect, useRef } from 'react';
 import type { debugState } from '../../types/DebugToolTypes';
-import type { MeshPiece } from '../../types/MeshRegenTypes';
+import type { IslandDebugPoints, MeshPiece } from '../../types/MeshRegenTypes';
 import { RenderMeshEngine } from '../../classes/RenderMeshEngine';
 import './RenderCanvas.css';
 import { useDevice } from '../../contexts/device-context/useDevice';
 
 interface RenderCanvasProps{
   meshPiecesRef: React.RefObject<MeshPiece[]>;
-  debugDataRef: React.RefObject<string[]>;
+  buffersDataRef: React.RefObject<IslandDebugPoints[]>;
   debugTools: debugState;
-  meshVersion: number
+  meshVersion: number,
+  colorsActive: boolean,
+  strokeOpacity: number,
 }
 
-export default function RenderCanvas({ meshPiecesRef, debugDataRef, debugTools, meshVersion }: RenderCanvasProps) {
+export default function RenderCanvas({ meshPiecesRef, buffersDataRef, debugTools, meshVersion, colorsActive, strokeOpacity }: RenderCanvasProps) {
   const { device } = useDevice();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -21,21 +23,23 @@ export default function RenderCanvas({ meshPiecesRef, debugDataRef, debugTools, 
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
   useEffect(() => {
-
-
-  }, [debugTools]);
-
-  useEffect(() => {
-    engineRef.current?.updateMeshData(meshPiecesRef.current, debugDataRef.current);
+    engineRef.current?.updateMeshData(meshPiecesRef.current, buffersDataRef.current);
   }, [meshVersion]);
   
+  useEffect(() => {
+    const renderEngine = engineRef.current;
+    if (!renderEngine) return;
+
+    renderEngine.updateConfig(colorsActive, strokeOpacity, debugTools);
+  }, [colorsActive, strokeOpacity, debugTools]);
+
   useEffect(() => {
     const canvasElm = canvasRef.current;
     const containerElm = containerRef.current;
 
     if (!containerElm || !canvasElm) return;
     
-    const renderEngine = new RenderMeshEngine(canvasElm, device, dpr, meshPiecesRef.current, debugDataRef.current, debugTools);
+    const renderEngine = new RenderMeshEngine(canvasElm, device, dpr, meshPiecesRef.current, buffersDataRef.current, debugTools, colorsActive, strokeOpacity);
     engineRef.current = renderEngine;
 
     const resizeObserver = new ResizeObserver((entries) => {

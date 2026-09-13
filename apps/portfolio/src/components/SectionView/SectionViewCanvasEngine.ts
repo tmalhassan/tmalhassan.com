@@ -137,8 +137,6 @@ export class SectionViewCanvasEngine {
     this.switchAnimProps = { startTime: null as number | null, duration: 1000, progress: 0 };
     this.isShattered = false;
 
-    console.log(getMesh({ mesh: activeProject, type: "glass" }));
-
     // reset/init logo shards
     this.logoShards = getMesh({ mesh: activeProject, type: "glass" }).map((p) => ({ ...p, withinBounds: true,
       physics: {

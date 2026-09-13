@@ -8,7 +8,7 @@ interface Props {
 export default function ThemeProvider({ children }: Props) {
   const [theme, setTheme] = useState<Theme>(() => {
     const storedTheme = localStorage.getItem("theme") as Theme | null;
-    return storedTheme ?? "light";
+    return storedTheme ?? "dark";
   });
 
   const toggleTheme = () => setTheme(prev => (prev === "light" ? "dark" : "light"));

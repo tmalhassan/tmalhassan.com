@@ -1,6 +1,7 @@
 import type { debugState } from "../types/DebugToolTypes";
 import type { DeviceTypes } from "../types/DeviceTypes";
-import type { MeshPiece } from "../types/MeshRegenTypes";
+import type { IslandDebugPoints, MeshPiece, Point, PolyColorHSLA } from "../types/MeshRegenTypes";
+import easeInOut from "../utilities/easeInOut";
 
 export class RenderMeshEngine {
   // Main canvas context
@@ -25,6 +26,8 @@ export class RenderMeshEngine {
   private zoom = 1;
   private panX = 0;
   private panY = 0;
+  private translateX = 0;
+  private translateY = 0;
 
   private activePointers: PointerEvent[] = [];
   private isDragging = false;
@@ -33,29 +36,46 @@ export class RenderMeshEngine {
   private lastPinchDist = 0;
 
   // Render Props
+  private colorsActive = true;
   private triOpacity = 1;
+  private strokeOpacity = 0.45;
+  private DEBUG_COLORS: Record<string, PolyColorHSLA> = {
+    FULLY:   { h: 120,  s: 100, l: 62,  a: 0.35 },
+    PARTLY:  { h: 61, s: 100, l: 62,  a: 0.35 },
+    OUTSIDE: { h: 0, s: 100,  l: 62,  a: 0.35 },
+  };
 
   // Live Configuration Map
   private meshPieces: MeshPiece[];
-  private debugData: string[];
-  private debugTools: debugState;
+  private buffersData: IslandDebugPoints[];
+  private debugState: debugState;
   private rafId: number | null = null;
+  private hoveredPiece: MeshPiece | null = null;
+  private selectedPiece: MeshPiece | null = null;
+  private neighborPieces: MeshPiece[] = [];
+
+  // Animators
+  private neighborPiecesAnim = { startTime: null as number | null, duration: 3000, progress: 0 };
 
   constructor(
     canvas: HTMLCanvasElement,
     device: DeviceTypes,
     dpr: number,
     meshPices: MeshPiece[],
-    debugData: string[],
-    debugTools: debugState,
+    buffersData: IslandDebugPoints[],
+    debugState: debugState,
+    colorActive: boolean,
+    strokeOpacity: number,
   ) {
     this.canvasElement = canvas;
     this.ctx = canvas.getContext("2d")!;
     this.device = device;
     this.dpr = dpr;
     this.meshPieces = meshPices;
-    this.debugData = debugData;
-    this.debugTools = debugTools;
+    this.buffersData = buffersData;
+    this.debugState = debugState;
+    this.colorsActive = colorActive;
+    this.strokeOpacity = strokeOpacity;
 
     // initialize pointer events
     this.initPointerHandlers();
@@ -64,9 +84,12 @@ export class RenderMeshEngine {
     this.startLoop();
   }
   
-  public updateMeshData(meshPieces: MeshPiece[], debugData: string[]) {
+  public updateMeshData(meshPieces: MeshPiece[], buffersData: IslandDebugPoints[]) {
     this.meshPieces = meshPieces;
-    this.debugData = debugData;
+    this.buffersData = buffersData;
+
+    this.selectedPiece = null;
+    this.neighborPieces = [];
   }
 
   //================================================//
@@ -79,11 +102,11 @@ export class RenderMeshEngine {
 
     // console.log('width: ', newWidth, 'height: ', newHeight);
 
-    const { width, height, dpr, ctx } = this;
+    const { width, height, baseScale, dpr, ctx } = this;
 
     // calculate aspect-ratio scale based on a 1024x1024 virtual box
     const size = Math.min(width, height);
-    const scale = size / 1024;
+    const scale = size / baseScale;
 
     // resize canvas DOM
     ctx.canvas.width = width * dpr;
@@ -109,10 +132,10 @@ export class RenderMeshEngine {
     const extraHeightFactor = (height - size) / size; // > 0 in portrait
 
     // translate physical screen edges backward
-    this.virtualMinX = 0 - (extraWidthFactor * 512);
-    this.virtualMaxX = 1024 + (extraWidthFactor * 512);
-    this.virtualMinY = 0 - (extraHeightFactor * 512);
-    this.virtualMaxY = 1024 + (extraHeightFactor * 512);
+    this.virtualMinX = 0 - (extraWidthFactor * baseScale / 2);
+    this.virtualMaxX = baseScale + (extraWidthFactor * baseScale / 2);
+    this.virtualMinY = 0 - (extraHeightFactor * baseScale / 2);
+    this.virtualMaxY = baseScale + (extraHeightFactor * baseScale / 2);
 
     // console.log('virtualMinX:', this.virtualMinX, '   virtualMaxX:', this.virtualMaxX, '   virtualMinY:', this.virtualMinY, '   virtualMaxY:', this.virtualMaxY);
 
@@ -127,6 +150,16 @@ export class RenderMeshEngine {
 
     // force render to stop flickering during resize
     this.render(performance.now());
+  }
+
+  public updateConfig(
+    colorsActive: boolean,
+    strokeOpacity: number,
+    debugState: debugState
+  ) {
+    this.colorsActive = colorsActive;
+    this.strokeOpacity = strokeOpacity;
+    this.debugState = debugState;
   }
 
   //================================================//
@@ -144,31 +177,115 @@ export class RenderMeshEngine {
   }
 
   private update(ts: number) {
-    
+    const { selectedPiece } = this;
+
+    this.neighborPieces = [];
+
+    if (!selectedPiece) {
+      this.neighborPiecesAnim.startTime = null;
+      this.neighborPiecesAnim.progress = 0;
+      return;
+    }
+
+    const anim = this.neighborPiecesAnim;
+
+    if (anim.startTime === null) {
+      anim.startTime = ts;
+    }
+
+    const elapsed = ts - anim.startTime;
+
+    // Loops forever between 0 and 1
+    const cycleProgress = (elapsed % anim.duration) / anim.duration;
+
+    // 0 → 1 → 0 during each cycle
+    const breathProgress =
+      cycleProgress <= 0.5
+        ? cycleProgress * 2
+        : (1 - cycleProgress) * 2;
+
+    anim.progress = easeInOut(breathProgress, 3);
   }
 
   private render(ts: number) {
-    const { width, height, dpr, ctx, meshPieces } = this;
+    const { width, height, dpr, ctx, meshPieces, debugState, buffersData, DEBUG_COLORS } = this;
     
-    // ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, width * dpr, height * dpr);
     this.applyCameraTransform();
-    // ctx.restore();
     
     const len = meshPieces.length;
-    // console.log('drawing', len, 'triangles');
     for (let i = 0; i < len; i++) {
       const piece = meshPieces[i];
+      const isHovered = piece === this.hoveredPiece;
+      const isSelected = piece === this.selectedPiece;
+      let isNeighbor = false;
+      if (debugState.neighbors) {
+        if (this.selectedPiece?.neighbors.find((p) => p === piece.triangleIndex))
+          isNeighbor = true;
+      }
 
       this.drawTrianglePath(piece);
 
-      const { r, g, b } = piece.color;
-      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${this.triOpacity})`;
-      ctx.strokeStyle = '#35353576';
+      // Compute base colors
+      const { h, s, l } = !this.colorsActive 
+        ? { h: 0, s: 0, l: 100 } 
+        : (debugState.clipRegions && DEBUG_COLORS[piece.state]) || piece.color as PolyColorHSLA;
+
+      const baseAlpha = (debugState.clipRegions && DEBUG_COLORS[piece.state]?.a) ?? piece.color.a;
+      const opa = !debugState.enableDebug ? this.triOpacity : (debugState.clipRegions ? baseAlpha : 0.6);
+
+      let fillStyle;
+      let strStyle = `rgba(53, 53, 53, ${this.strokeOpacity})`;
+
+      if (isSelected) {
+        fillStyle = `hsla(${h}, ${s * 1.35}%, ${l * 1.25}%, 1)`;
+        strStyle = `rgba(255, 255, 255, 0.6)`;
+      }
+      else if (isNeighbor) {
+        const { progress } = this.neighborPiecesAnim;
+
+        const strS = 1 + progress * 0.4;
+        const strL = 1 + progress * 0.2;
+        const opaStr = 1 + progress * 0.2;
+
+        fillStyle = `hsla(${h}, ${s * strS}%, ${l * strL}%, ${(opa || 0) * opaStr})`;
+      }
+      else if (isHovered) {
+        fillStyle = `hsla(${h}, ${s * 1.35}%, ${l * 1.25}%, ${opa})`;
+      }
+      else {
+        fillStyle = `hsla(${h}, ${s}%, ${l}%, ${opa})`;
+      }
+
+      
       ctx.lineWidth = 1;
-      ctx.stroke();
+      ctx.strokeStyle = strStyle;
+      
+
+      // ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opa})`;
+      ctx.fillStyle = fillStyle;
       ctx.fill();
+      ctx.stroke();
+
+      
+
+      if (debugState.centroids) {
+        ctx.beginPath();
+        ctx.fillStyle = '#ffffffbf'; // rgba(255, 0, 0, 0.75)
+        ctx.arc(piece.centroid.x, piece.centroid.y, 1 / this.zoom * dpr, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+    }
+
+    // render buffers...
+    if (debugState.innerBuffer) {
+      this.drawBufferRings(buffersData.map(b => b.innerBfrPts), 'rgba(255, 0, 0, 0.7)');
+    }
+
+    if (debugState.outerBuffer) {
+      this.drawBufferRings(buffersData.map(b => b.outerBfrPts), 'rgba(0, 0, 255, 0.7)');
     }
   }
 
@@ -199,21 +316,6 @@ export class RenderMeshEngine {
     canvas.addEventListener("pointermove", this.handlePointerMove);
     canvas.addEventListener("pointerup", this.handlePointerUp);
   }
-
-  // private handlePointerDown = (e: PointerEvent) => {
-  //   if (e.button !== 0) return; // Only left click
-    
-  //   const { ctx } = this;
-    
-  //   // Map screen click position to canvas coordinate space
-  //   const rect = ctx.canvas.getBoundingClientRect();
-  //   const posX = (e.clientX - rect.left);
-  //   const posY = (e.clientY - rect.top);
-
-  //   // console.log(`Canvas detected a click at X: ${posX}, Y: ${posY}`);
-
-
-  // };
 
   public handleWheel = (e: WheelEvent) => {
     e.preventDefault();
@@ -250,6 +352,7 @@ export class RenderMeshEngine {
       this.isDragging = true;
       this.lastMidX = e.clientX;
       this.lastMidY = e.clientY;
+      this.setSelectedPiece(e);
     } else if (this.activePointers.length === 2) {
       this.isDragging = false; // Turn off single-finger rules
       
@@ -264,9 +367,10 @@ export class RenderMeshEngine {
   }
 
   public handlePointerMove = (e: PointerEvent) => {
-    const index = this.activePointers.findIndex((p) => p.pointerId === e.pointerId);
-    if (index === -1) return;
-    this.activePointers[index] = e;
+    const index = this.activePointers.findIndex(p => p.pointerId === e.pointerId);
+    if (index !== -1) {
+      this.activePointers[index] = e;
+    }
 
     const size = Math.min(this.width, this.height);
     const baseScale = size / 1024;
@@ -281,6 +385,8 @@ export class RenderMeshEngine {
 
       this.lastMidX = e.clientX;
       this.lastMidY = e.clientY;
+
+      return;
     } 
     // --- CASE 2: LIVE SIMULTANEOUS PINCH-ZOOM & PANNING ---
     else if (this.activePointers.length === 2) {
@@ -318,7 +424,11 @@ export class RenderMeshEngine {
       this.lastPinchDist = currentDist;
       this.lastMidX = currentMidX;
       this.lastMidY = currentMidY;
+
+      return;
     }
+
+    this.checkHoveredPiece(e);
   }
 
   public handlePointerUp = (e: PointerEvent) => {
@@ -336,8 +446,90 @@ export class RenderMeshEngine {
     }
   }
 
+  private checkHoveredPiece(e: PointerEvent) {
+    const canvas = this.canvasElement;
+    const { worldX, worldY } = this.getWorldCoords(e);
+
+    this.hoveredPiece = null;
+
+    // Search backwards so we highlight top-layered pieces first
+    for (let i = this.meshPieces.length - 1; i >= 0; i--) {
+      const piece = this.meshPieces[i];
+      const { minX, maxX, minY, maxY } = piece.bbox;
+
+      // Stage 1: Ultra-fast Bounding Box check
+      if (worldX < minX || worldX > maxX || worldY < minY || worldY > maxY) {
+        continue;
+      }
+
+      // Stage 2: Precise mathematical point-in-polygon ray-casting test
+      if (this.isPointInPolygon(worldX, worldY, piece.points)) {
+        canvas.style.cursor = `pointer`;
+        this.hoveredPiece = piece;
+        break; 
+      } else {
+        canvas.style.cursor = `auto`;
+      }
+    }
+  }
+
+  private setSelectedPiece(e: PointerEvent) {
+    const { worldX, worldY } = this.getWorldCoords(e);
+
+    // reset the selected piece and neighbors first
+    this.selectedPiece = null;
+    this.neighborPieces = [];
+    this.neighborPiecesAnim = { ...this.neighborPiecesAnim, startTime: null, progress: 0 };
+
+    // Search backwards so we highlight top-layered pieces first
+    for (let i = this.meshPieces.length - 1; i >= 0; i--) {
+      const piece = this.meshPieces[i];
+      const { minX, maxX, minY, maxY } = piece.bbox;
+
+      // Stage 1: Ultra-fast Bounding Box check
+      if (worldX < minX || worldX > maxX || worldY < minY || worldY > maxY) {
+        continue;
+      }
+
+      // Stage 2: Precise mathematical point-in-polygon ray-casting test
+      if (this.isPointInPolygon(worldX, worldY, piece.points)) {
+        this.selectedPiece = piece;
+        break; 
+      }
+    }
+  }
+
+  private getWorldCoords(e: PointerEvent) {
+    const { width, height, dpr, baseScale, zoom, panX, panY } = this;
+
+    // 1. Calculate the aspect ratio scale and offsets exactly like handleResize
+    const size = Math.min(width, height);
+    const scale = size / baseScale;
+    const offsetX = ((width - size) / 2) * dpr;
+    const offsetY = ((height - size) / 2) * dpr;
+
+    // 2. Convert CSS client coordinates to raw canvas buffer pixels
+    const canvasX = e.offsetX * dpr;
+    const canvasY = e.offsetY * dpr;
+
+    // 3. Un-center: Subtract the initial letterboxing offsets
+    const baseScaledX = canvasX - offsetX;
+    const baseScaledY = canvasY - offsetY;
+
+    // 4. Un-scale: Divide by the base aspect-ratio scale factoring the DPR
+    const virtualCanvasX = baseScaledX / (scale * dpr);
+    const virtualCanvasY = baseScaledY / (scale * dpr);
+
+    // 5. Un-pan and Un-zoom: Account for camera pan (panX/panY) and camera zoom (zoom)
+    // Assuming your camera application translates by panX/panY and then multiplies by zoom:
+    return {
+      worldX: (virtualCanvasX - panX) / zoom,
+      worldY: (virtualCanvasY - panY) / zoom
+    }
+  }
+
   //================================================//
-  //                 Draw Functions                 //
+  //                 Camera Controls                //
   //================================================//
 
   public applyCameraTransform() {
@@ -360,31 +552,9 @@ export class RenderMeshEngine {
     ctx.scale(zoom, zoom);
   }
 
-  // private drawTrianglePath(tri: MeshPiece) {
-  //   const ctx = this.ctx;
-  //   const points = tri.points;
-  //   const pLen = points.length;
-  //   const centroid = tri.centroid;
-
-  //   ctx.beginPath();
-
-  //   for (let i = 0; i < pLen; i++) {
-  //     const pt = points[i];
-  //     const dx = pt.x - centroid.x;
-  //     const dy = pt.y - centroid.y;
-
-  //     const rx = (dx + dy);
-  //     const ry = (dx + dy);
-
-  //     const screenX = rx + centroid.x;
-  //     const screenY = ry + centroid.y;
-
-  //     if (i === 0) ctx.moveTo(screenX, screenY);
-  //     else ctx.lineTo(screenX, screenY);
-  //   }
-
-  //   ctx.closePath();
-  // }
+  //================================================//
+  //                 Draw Functions                 //
+  //================================================//
 
   private drawTrianglePath(tri: MeshPiece) {
     const ctx = this.ctx;
@@ -403,18 +573,50 @@ export class RenderMeshEngine {
     ctx.closePath();
   }
 
-  // private drawTrianglePath (piece: MeshPiece) {
-  //   const ctx = this.ctx;
+  private drawBufferRings(rings: Point[][], color: string) {
+    const ctx = this.ctx;
+    const ringsLength = rings.length;
 
-  //   // Use a standard index loop here for a minor micro-optimization over forEach
-  //   const points = piece.points;
-  //   if (points.length === 0) return;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
 
-  //   ctx.moveTo(points[0].x, points[0].y);
-  //   for (let i = 1; i < points.length; i++) {
-  //     ctx.lineTo(points[i].x, points[i].y);
-  //   }
+    for (let i = 0; i < ringsLength; i++) {
+      const points = rings[i];
+      const pointsLength = points.length;
+      
+      if (pointsLength === 0) continue;
 
-  //   ctx.closePath();
-  // }
+      // Move to the start of this specific ring
+      ctx.moveTo(points[0].x, points[0].y);
+
+      // Draw the remaining lines for this ring
+      for (let j = 1; j < pointsLength; j++) {
+        ctx.lineTo(points[j].x, points[j].y);
+      }
+      
+      // Close the path for this sub-ring
+      ctx.closePath();
+    }
+
+    // One single draw call for all rings of this color
+    ctx.stroke();
+  }
+
+  private isPointInPolygon(x: number, y: number, points: Point[]): boolean {
+    let inside = false;
+    const len = points.length;
+    
+    for (let i = 0, j = len - 1; i < len; j = i++) {
+      const xi = points[i].x, yi = points[i].y;
+      const xj = points[j].x, yj = points[j].y;
+      
+      const intersect = ((yi > y) !== (yj > y))
+          && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+          
+      if (intersect) inside = !inside;
+    }
+    
+    return inside;
+  }
 }

@@ -178,7 +178,7 @@ body[theme="dark"] {
     padding-left: 10px;
     padding-right: 10px;
     overflow: hidden;
-    transition-duration: 0.3s;
+    transition: all 0.3s ease-in-out;
 }
 .login-container > .form-container > form > .input-section:first-of-type{
     margin-bottom: 1.25vh;
@@ -283,15 +283,35 @@ body[theme="dark"] {
     opacity: 50%;
     font-size: 0.7em;
     font-style: italic;
-    margin: 3% 0;
+    margin: 1.5% 0;
 }
 
 .login-container > .form-container > form > .guest-button{
-    background: none;
-    border: none;
-    text-decoration: underline;
-    font-size: 0.75em;
-    color: var(--accent);
+  /* background: none;
+  border: none;
+  text-decoration: underline;
+  font-size: 0.75em;*/
+  color: var(--accent); 
+
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  width: 80%;
+  height: 40px;
+  border-radius: 50px;
+  border: 1px solid;
+  border-color: var(--accent);
+  background: none;
+  margin: 1.5vh 0;
+  /* background-color: var(--accent); */
+  background-color: #303030;
+  transition: all 0.3s ease-in-out;
+}
+[theme=light] .login-container > .form-container > form > .guest-button{
+  background-color: #f2f2f2;
+  border-color: var(--accent);
 }
 
 .gradient-bg{

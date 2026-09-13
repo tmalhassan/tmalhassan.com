@@ -9,6 +9,7 @@ import LinkedInIcon from '../SVGs/LinkedInIcon';
 import { useTheme } from '../../contexts/theme-context/useTheme';
 import EmailIcon from '../SVGs/EmailIcon';
 import GlassGlareButton from '../GlassGlareButton/GlassGlareButton';
+import { handleRedirectButtonClick } from '../../utilities/linkRedirect';
 
 export default function ThankYouPage({ ref, isHidden }: { ref: React.RefObject<HTMLDivElement | null>; isHidden: boolean; }) {
   const { theme } = useTheme();
@@ -92,28 +93,20 @@ export default function ThankYouPage({ ref, isHidden }: { ref: React.RefObject<H
           />
         </div>
         <div className='socials-container'>
-          <GlassGlareButton buttonImage={<LinkedInIcon stroke={theme === 'dark' ? '#bfbfbf' : '#353535cc'}/>}/>
-          <GlassGlareButton buttonImage={<EmailIcon stroke={theme === 'dark' ? '#bfbfbf' : '#353535cc'}/>}/>
-          {/* <div className='social-button-wrapper'>
-            <button>
-              <LinkedInIcon stroke={theme === 'dark' ? '#ffffffa6' : '#353535cc'}/>
-            </button>
-            <div className='sb-glare-group'>
-              <div className='sb-glare'/>
-              <div className='sb-glare'/>
-              <div className='sb-glare'/>
-            </div>
-          </div>
-          <div className='social-button-wrapper'>
-            <button>
-              <EmailIcon stroke={theme === 'dark' ? '#ffffffa6' : '#353535cc'}/>
-            </button>
-            <div className='sb-glare-group'>
-              <div className='sb-glare'/>
-              <div className='sb-glare'/>
-              <div className='sb-glare'/>
-            </div>
-          </div> */}
+          <GlassGlareButton
+            buttonImage={<LinkedInIcon stroke={theme === 'dark' ? '#bfbfbf' : '#353535cc'}/>}
+            triggerAnim={false}
+            animDelay={0}
+            willAnimate={false}
+            onClickHandler={() => handleRedirectButtonClick('linkedin')}
+          />
+          <GlassGlareButton
+            buttonImage={<EmailIcon stroke={theme === 'dark' ? '#bfbfbf' : '#353535cc'}/>}
+            triggerAnim={false}
+            animDelay={0}
+            willAnimate={false}
+            onClickHandler={() => handleRedirectButtonClick('email')}
+          />
         </div>
         {/* <div className='cover'/> */}
       </div>

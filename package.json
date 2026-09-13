@@ -5,13 +5,17 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "devp": "pnpm --filter portfolio dev --host",
-    "deva": "pnpm --filter alura dev --host",
-    "devm": "pnpm --filter meshregen dev --host",
-    "devh": "pnpm --filter hairday dev --host"
+    "devp": "pnpm --filter portfolio dev",
+    "deva": "concurrently \"pnpm --filter alura-admin dev\" \"pnpm --filter alura-server dev\"",
+    "devc": "concurrently \"pnpm --filter alura-client dev\" \"pnpm --filter alura-server dev\"",
+    "devm": "pnpm --filter meshregen dev",
+    "devh": "pnpm --filter hairday dev"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@12.3.4+sha512.961aa41fb077da3a04a441d9f8e15ebc0c96da8ef710b2eb67bf9ee7cb0610eabd48f1fd85f51cffe73846785fa0f87c56a3a872a1d893f8446741b5cce45457"
+  "packageManager": "pnpm@12.3.4+sha512.961aa41fb077da3a04a441d9f8e15ebc0c96da8ef710b2eb67bf9ee7cb0610eabd48f1fd85f51cffe73846785fa0f87c56a3a872a1d893f8446741b5cce45457",
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
 }

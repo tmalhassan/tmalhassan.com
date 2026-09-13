@@ -175,6 +175,16 @@
   margin-right: 2em;
 }
 
+.credits-section{
+  align-items: center;
+  gap: 0;
+  font-size: 0.85em;
+}
+
+.credits-section > img{
+  width: 150px;
+}
+
 
 @keyframes showHideButtonHover {
   0%{

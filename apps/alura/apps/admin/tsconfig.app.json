@@ -1,9 +1,8 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       "shared/*": ["../../shared/*"],
-      "src/*": ["apps/admin/src/*"]
+      "src/*": ["./src/*"]
     },
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "ES2020",

@@ -1,7 +1,7 @@
 import { pointInPolygon, PointInPolygonResult, getBounds, ClipperOffset, JoinType, EndType, type Paths64, type Path64, Clipper64, ClipType, FillRule } from "clipper2-ts";
 import { Delaunay } from "d3-delaunay";
 import PoissonDiskSampling from "poisson-disk-sampling";
-import type { MeshPiece, MeshIslandProps, Point, Island, PolyColor, TriangleClass } from "../types/MeshRegenTypes";
+import type { MeshPiece, MeshIslandProps, Point, Island, PolyColorRGB, TriangleClass, PolyColorHSLA, IslandDebugPoints } from "../types/MeshRegenTypes";
 
 export default class MeshRegenClass {
   private CLIPPER_SCALE = 1024;
@@ -15,11 +15,12 @@ export default class MeshRegenClass {
   private ringOffsetMultiplier: number = 1;
   private rawPathDs: string[] = [];
   private imageData: ImageData | undefined = undefined;
+  private colorSpace: 'RGB' | 'HSL' = 'RGB';
 
 
   // --- Final Result Data --- //
   public meshPieces: MeshPiece[] = [];
-  public debugData = [];
+  public buffersData: IslandDebugPoints[] = [];
 
   
   constructor(
@@ -27,18 +28,21 @@ export default class MeshRegenClass {
     ringOffsetMultiplier: number,
     rawPathDs: string[],
     imageData?: ImageData,
+    colorSpace: 'RGB' | 'HSL' = 'RGB',
   ) {
     this.spacing = userSpacing * 10;
     this.ringOffsetMultiplier = ringOffsetMultiplier;
     this.rawPathDs = rawPathDs;
     this.imageData = imageData;
+    this.colorSpace = colorSpace;
 
     // -- Initializing Tool -- //
     this.generateMesh(
       userSpacing,
       ringOffsetMultiplier,
       rawPathDs,
-      imageData
+      imageData,
+      colorSpace
     );
   }
 
@@ -52,11 +56,13 @@ export default class MeshRegenClass {
     ringOffsetMultiplier: number,
     rawPathDs: string[],
     imageData?: ImageData,
+    colorSpace: 'RGB' | 'HSL' = 'RGB',
   ) => {
     this.spacing = userSpacing * 10;
     this.ringOffsetMultiplier = ringOffsetMultiplier;
     this.rawPathDs = rawPathDs;
     this.imageData = imageData;
+    this.colorSpace = colorSpace;
 
     // 1. Test pathD directions to distinguish islands from holes
     this.prepareIslands();
@@ -95,18 +101,21 @@ export default class MeshRegenClass {
   private generateIslandBuffers = () => {
     const { CLIPPER_SCALE, spacing, clipperIslands, ringOffsetMultiplier, samplePath64ByDistance } = this;
 
+    const debugBuffers: IslandDebugPoints[] = [];
+
     this.islandBuffers = clipperIslands.map((island) => {
-      const offset = CLIPPER_SCALE * ringOffsetMultiplier * 2 * spacing;
+      const offset = CLIPPER_SCALE * ringOffsetMultiplier * 0.2 * spacing;
 
       const boundaryPts: Point[] = [];
       const outerBfrPts: Point[] = [];
+      const innerBfrPts: Point[] = [];
       const interiorPts: Point[] = [];
 
       const { outerBuffer, boundaryBuffer, innerBuffer } = this.generateBuffers(
         island,
         offset,
         1100,
-        (spacing / 1.5) * CLIPPER_SCALE
+        spacing * ringOffsetMultiplier * 150 // (spacing * ringOffsetMultiplier * 0.1) * CLIPPER_SCALE
       );
 
       // boundary points
@@ -135,6 +144,32 @@ export default class MeshRegenClass {
         ...this.generateInteriorPoints(innerBuffer)
       );
 
+      
+      
+
+      // outer buffer points
+      innerBfrPts.push(
+        ...samplePath64ByDistance(innerBuffer.outer)
+      );
+
+      for (let i = 0; i < innerBuffer.holes.length; i++) {
+        innerBfrPts.push(
+          ...samplePath64ByDistance(
+            innerBuffer.holes[i]
+          )
+        );
+      }
+
+
+
+
+
+
+      debugBuffers.push({
+        innerBfrPts: this.path64ToPoints(innerBfrPts, 1),
+        outerBfrPts: this.path64ToPoints(outerBfrPts, 1)
+      })
+
       return {
         island,
         innerBuffer,
@@ -143,6 +178,8 @@ export default class MeshRegenClass {
         interiorPts
       };
     });
+
+    this.buffersData = debugBuffers;
   }
 
   private generateMeshPieces = () => {
@@ -150,6 +187,8 @@ export default class MeshRegenClass {
 
     const pieces: MeshPiece[] = [];
     let id = 0;
+    // Highlight Fix: Track global offsets across detached triangulation meshes
+    let globalTriangleOffset = 0; 
     
     for (const {
       island,
@@ -180,48 +219,54 @@ export default class MeshRegenClass {
       );
 
       for (let i = 0; i < triangles.length; i += 3) {
-        const currentTriangleIndex = i / 3;
+        // Calculate the local index, then offset it to become uniquely global
+        const localTriangleIndex = i / 3;
+        const currentTriangleIndex = globalTriangleOffset + localTriangleIndex;
 
-        // 1. Get the 3 exact halfedge indices for this triangle
-        const edge0 = i;
-        const edge1 = i + 1;
-        const edge2 = i + 2;
+        const p0_id = triangles[i];
+        const p1_id = triangles[i + 1];
+        const p2_id = triangles[i + 2];
 
-        // 2. Get the specific vertex/point IDs from the mesh
-        const p0_id = triangles[edge0];
-        const p1_id = triangles[edge1];
-        const p2_id = triangles[edge2];
+        const p0 = points[p0_id];
+        const p1 = points[p1_id];
+        const p2 = points[p2_id];
 
-        const tri = [
-          points[p0_id],
-          points[p1_id],
-          points[p2_id]
-        ];
+        const tri = [p0, p1, p2];
 
-        const neighborTriangleIds = [];
-        const edgeIndices = [edge0, edge1, edge2];
-
+        // Gather raw mesh neighbors cleanly and offset them globally
+        const neighborTriangleIds: number[] = [];
         for (let j = 0; j < 3; j++) {
-          const oppositeEdge = halfedges[edgeIndices[j]];
+          const oppositeEdge = halfedges[i + j];
           if (oppositeEdge >= 0) {
-            neighborTriangleIds.push(Math.floor(oppositeEdge / 3));
+            const localNeighborIdx = (oppositeEdge / 3) | 0;
+            neighborTriangleIds.push(globalTriangleOffset + localNeighborIdx);
           }
         }
 
         const state = this.classifyTriangle(tri, island, innerBuffer);
         const triCentroid = this.calculateCentroid(tri);
 
+        const sharedMeta = {
+          triangleIndex: currentTriangleIndex, // Globally unique across islands!
+          halfedges: [i, i + 1, i + 2],
+          pointIds: [p0_id, p1_id, p2_id],
+          neighbors: neighborTriangleIds,
+          state,
+        };
+
         if (state === "FULLY") {
           pieces.push({
-            id: id++,
+            ...sharedMeta,
+            id: id++, 
             points: tri,
-            triangleIndex: currentTriangleIndex,
-            halfedges: edgeIndices,
-            pointIds: [p0_id, p1_id, p2_id],
-            neighbors: neighborTriangleIds,
-            state: "FULLY",
             centroid: triCentroid,
-            color: imageData ? this.bakePieceColors(imageData, tri, triCentroid) : { r: 255, g: 255, b: 255, a: 1 }
+            color: imageData ? this.bakePieceColors(imageData, tri, triCentroid) : (this.colorSpace === "RGB" ? { r: 255, g: 255, b: 255, a: 1 } : { h: 0, s: 0, l: 100, a: 1 }),
+            bbox: {
+              minX: Math.min(p0.x, p1.x, p2.x),
+              maxX: Math.max(p0.x, p1.x, p2.x),
+              minY: Math.min(p0.y, p1.y, p2.y),
+              maxY: Math.max(p0.y, p1.y, p2.y),
+            }
           });
           continue;
         }
@@ -229,26 +274,29 @@ export default class MeshRegenClass {
         const clippedPolys = this.clipTriangleToIsland(tri, island);
 
         for (const poly of clippedPolys) {
-          const polyCentroid = this.path64ToPoints(
-            [this.calculateCentroid(poly)],
-            CLIPPER_SCALE
-          )[0];
-
           const polyPts = this.path64ToPoints(poly, CLIPPER_SCALE);
+          const polyCentroid = this.path64ToPoints([this.calculateCentroid(poly)], CLIPPER_SCALE)[0];
+
+          const polyBbox = {
+            minX: Math.min(...polyPts.map(p => p.x)),
+            maxX: Math.max(...polyPts.map(p => p.x)),
+            minY: Math.min(...polyPts.map(p => p.y)),
+            maxY: Math.max(...polyPts.map(p => p.y)),
+          };
 
           pieces.push({
-            id: id++,
+            ...sharedMeta,
+            id: id++, 
             points: polyPts,
-            triangleIndex: currentTriangleIndex,
-            halfedges: edgeIndices,
-            pointIds: [p0_id, p1_id, p2_id],
-            neighbors: neighborTriangleIds,
-            state,
             centroid: polyCentroid,
-            color: imageData ? this.bakePieceColors(imageData, polyPts, polyCentroid) : { r: 255, g: 255, b: 255, a: 1 }
+            color: imageData ? this.bakePieceColors(imageData, polyPts, polyCentroid) : (this.colorSpace === "RGB" ? { r: 255, g: 255, b: 255, a: 1 } : { h: 0, s: 0, l: 100, a: 1 }),
+            bbox: polyBbox,
           });
         }
       }
+
+      // Increment the global offset by the total number of triangles generated for this island
+      globalTriangleOffset += (triangles.length / 3);
     }
 
     this.meshPieces = pieces;
@@ -653,94 +701,150 @@ export default class MeshRegenClass {
   }
 
   private calculateCentroid = (pts: Point[]): Point => {
-    let x = 0, y = 0;
-    for (const p of pts) {
-      x += p.x;
-      y += p.y;
+    if (!pts || pts.length < 3) {
+      throw new Error("A polygon must have at least 3 vertices.");
     }
-    return { x: x / pts.length, y: y / pts.length };
+
+    let cx = 0;
+    let cy = 0;
+    let area = 0;
+
+    const numPoints = pts.length;
+
+    for (let i = 0; i < numPoints; i++) {
+      const p1 = pts[i];
+      // The next point, wrapping around to the first point at the end
+      const p2 = pts[(i + 1) % numPoints];
+
+      // Common factor used in both area and centroid calculations
+      const factor = (p1.x * p2.y) - (p2.x * p1.y);
+
+      area += factor;
+      cx += (p1.x + p2.x) * factor;
+      cy += (p1.y + p2.y) * factor;
+    }
+
+    // Avoid division by zero for degenerate polygons (collinear points / zero area)
+    if (area === 0) {
+      // Fall back to vertex average if the polygon has no area
+      let xSum = 0, ySum = 0;
+      for (const p of pts) {
+        xSum += p.x;
+        ySum += p.y;
+      }
+      return { x: xSum / numPoints, y: ySum / numPoints };
+    }
+
+    cx = cx / (3 * area);
+    cy = cy / (3 * area);
+
+    return { x: cx, y: cy };
   }
 
   private samplePointsForPiece = (points: Point[], centroid: Point): Point[] => {
-  // Push samples closer to the interior centroid (e.g., 25% out from center instead of 50%)
-  // This completely stops samples from stepping on outer border strokes/edges.
-  const shrinkFactor = 0.25; 
+    const shrinkFactor = 0.25; 
 
-  if (points.length === 3) {
-    const [a, b, c] = points;
-    return [
-      centroid,
-      { x: centroid.x + (a.x - centroid.x) * shrinkFactor, y: centroid.y + (a.y - centroid.y) * shrinkFactor },
-      { x: centroid.x + (b.x - centroid.x) * shrinkFactor, y: centroid.y + (b.y - centroid.y) * shrinkFactor },
-      { x: centroid.x + (c.x - centroid.x) * shrinkFactor, y: centroid.y + (c.y - centroid.y) * shrinkFactor },
-    ];
+    if (points.length === 3) {
+      const [a, b, c] = points;
+      return [
+        centroid,
+        { x: centroid.x + (a.x - centroid.x) * shrinkFactor, y: centroid.y + (a.y - centroid.y) * shrinkFactor },
+        { x: centroid.x + (b.x - centroid.x) * shrinkFactor, y: centroid.y + (b.y - centroid.y) * shrinkFactor },
+        { x: centroid.x + (c.x - centroid.x) * shrinkFactor, y: centroid.y + (c.y - centroid.y) * shrinkFactor },
+      ];
+    }
+
+    const samples: Point[] = [centroid];
+    for (const p of points) {
+      samples.push({
+        x: centroid.x + (p.x - centroid.x) * shrinkFactor,
+        y: centroid.y + (p.y - centroid.y) * shrinkFactor
+      });
+    }
+    return samples;
   }
 
-  const samples: Point[] = [centroid];
+  private sampleColor = (
+    imageData: ImageData,
+    p: Point
+  ): [number, number, number, number] => {
+    const x = Math.max(0, Math.min(imageData.width - 1, Math.floor(p.x)));
+    const y = Math.max(0, Math.min(imageData.height - 1, Math.floor(p.y)));
 
-  for (const p of points) {
-    samples.push({
-      x: centroid.x + (p.x - centroid.x) * shrinkFactor,
-      y: centroid.y + (p.y - centroid.y) * shrinkFactor
-    });
+    const i = (y * imageData.width + x) * 4;
+    const d = imageData.data;
+
+    return [d[i], d[i + 1], d[i + 2], d[i + 3]];
   }
 
-  return samples;
-}
+  // Keep averaging in RGBA to ensure math/blending stays perfectly accurate
+  private averageColorsToRgba = (colors: number[][]) => {
+    let totalWeight = 0;
+    let r = 0, g = 0, b = 0, a = 0;
 
-private sampleColor = (
-  imageData: ImageData,
-  p: Point
-): [number, number, number, number] => {
-  // Clamp boundaries safely so it never returns undefined/NaN
-  const x = Math.max(0, Math.min(imageData.width - 1, Math.floor(p.x)));
-  const y = Math.max(0, Math.min(imageData.height - 1, Math.floor(p.y)));
+    for (const c of colors) {
+      const alphaWeight = c[3] / 255;
 
-  const i = (y * imageData.width + x) * 4;
-  const d = imageData.data;
+      if (alphaWeight === 0) continue; 
 
-  return [d[i], d[i + 1], d[i + 2], d[i + 3]];
-}
+      r += c[0] * alphaWeight;
+      g += c[1] * alphaWeight;
+      b += c[2] * alphaWeight;
+      a += c[3];               
+      totalWeight += alphaWeight;
+    }
 
-private averageColors = (colors: number[][]): PolyColor => {
-  let totalWeight = 0;
-  let r = 0, g = 0, b = 0, a = 0;
+    if (totalWeight === 0) {
+      return { r: 0, g: 0, b: 0, a: 0 };
+    }
 
-  for (const c of colors) {
-    const alphaWeight = c[3] / 255; // Use c[3] for the Alpha channel
-
-    // Completely ignore empty background samples
-    if (alphaWeight === 0) continue; 
-
-    r += c[0] * alphaWeight; // c[0] = Red
-    g += c[1] * alphaWeight; // c[1] = Green
-    b += c[2] * alphaWeight; // c[2] = Blue
-    a += c[3];               // Accumulate raw Alpha channel
-    totalWeight += alphaWeight;
+    return {
+      r: r / totalWeight,
+      g: g / totalWeight,
+      b: b / totalWeight,
+      a: (a / colors.length) / 255 // Normalized to 0-1 for standard HSLA usage
+    };
   }
 
-  // Fallback if the points accidentally hit entirely empty background spaces
-  if (totalWeight === 0) {
-    return { r: 0, g: 0, b: 0, a: 0 };
+  // New helper method to handle the math transformation
+  private rgbaToHsla = (r: number, g: number, b: number, a: number): PolyColorHSLA => {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+
+    let h = 0, s = 0;
+    const l = (max + min) / 2;
+
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+    }
+
+    return {
+      h: Math.round(h * 360),
+      s: Math.round(s * 100),
+      l: Math.round(l * 100),
+      a: Number(a.toFixed(2)) // Clean up floating point alpha decimals
+    };
   }
 
-  return {
-    r: r / totalWeight,
-    g: g / totalWeight,
-    b: b / totalWeight,
-    a: a / colors.length
-  };
-}
+  // The master function now seamlessly produces HSLA data
+  private bakePieceColors = (
+    imageData: ImageData,
+    points: Point[],
+    centroid: Point
+  ): PolyColorRGB | PolyColorHSLA => {
+    const samples = this.samplePointsForPiece(points, centroid);
+    const colors = samples.map(p => this.sampleColor(imageData, p));
+    
+    const avgRgba = this.averageColorsToRgba(colors);
 
-private bakePieceColors = (
-  imageData: ImageData,
-  points: Point[],
-  centroid: Point
-): PolyColor => {
-  const samples = this.samplePointsForPiece(points, centroid);
-  const colors = samples.map(p => this.sampleColor(imageData, p));
-  return this.averageColors(colors);
-}
-
-
+    if (this.colorSpace === 'RGB') return avgRgba
+    return this.rgbaToHsla(avgRgba.r, avgRgba.g, avgRgba.b, avgRgba.a);
+  }
 }

@@ -9,6 +9,7 @@ import GlassGlareButton from "../GlassGlareButton/GlassGlareButton.tsx";
 import useImagesReady from "../../hooks/useImagesReady.tsx";
 import GameDeveloperPage from "../GameDevPage/GameDevPage.tsx";
 import DesignerPage from "../DesignerPage/DesignerPage.tsx";
+import { handleRedirectButtonClick } from "../../utilities/linkRedirect.ts";
 
 const rawIcons = import.meta.glob('../../assets/icons/*.svg', {
   eager: true,
@@ -240,35 +241,6 @@ export default function SectionViewPage({ sectionView, ToggleSectionView }: Sect
     ToggleSectionView({ state: false, type: null });
   };
 
-  const handleRedirectButtonClick = () => {
-    // Open a specific URL in a new tab
-    let link = '';
-
-    switch (activeProject) {
-      case 'alura':
-        link = 'https://tmalhassan.dev/alura';
-        break;
-
-      case 'meshregen':
-        link = 'https://tmalhassan.dev/meshregen';
-        break;
-
-      case 'hairday':
-      link = 'https://tmalhassan.dev/hairday';
-      break;
-
-      // case 'starleap':
-      // link = 'https://tmalhassan.dev/starleap';
-      // break;
-    
-      default:
-        link = 'https://tmalhassan.dev/'
-        break;
-    }
-
-    window.open(link, '_blank', 'noopener,noreferrer');
-  };
-
   // const getUsedTools = () => {
   //   if (sectionView === 'web') {
   //     if (activeProject === 'alura')
@@ -288,7 +260,7 @@ export default function SectionViewPage({ sectionView, ToggleSectionView }: Sect
         <GlassGlareButton
           textLable={activeProject === 'starleap' ? 'Download' : 'View Website'}
           buttonStyle={{ height: '35px' }}
-          onClickHandler={handleRedirectButtonClick}
+          onClickHandler={() => handleRedirectButtonClick(activeProject)}
           willAnimate={true}
           triggerAnim={projectInView}
           animDelay={0}
@@ -302,7 +274,7 @@ export default function SectionViewPage({ sectionView, ToggleSectionView }: Sect
           targetProject={targetProject}
           setTargetProject={setTargetProject}
           setProjectInView={setProjectInView}
-          handleRedirectButtonClick={handleRedirectButtonClick}
+          handleRedirectButtonClick={() => handleRedirectButtonClick(activeProject)}
         />
       }
       {sectionView === 'game' && 
