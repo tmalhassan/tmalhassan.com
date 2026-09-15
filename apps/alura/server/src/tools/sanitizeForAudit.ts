@@ -1,5 +1,5 @@
-import type { Change, ChangeOp } from '../../../shared/types/ChangeTypes.ts';
-import type { ColorKey } from '../../../shared/types/ProductTypes.ts';
+import type { Change, ChangeOp } from '../../../shared/types/ChangeTypes.js';
+import type { ColorKey } from '../../../shared/types/ProductTypes.js';
 
 export default function sanitizeChangesForAudit(changes: Change[]) {
     const sanitized = [];

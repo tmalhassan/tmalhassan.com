@@ -1,19 +1,19 @@
 import express from 'express';
 import upload from '../middleware/upload.js';
-import db, { attrTables, type attrTableKey } from '../db/db.ts';
+import db, { attrTables, type attrTableKey } from '../db/db.js';
 import fs from 'fs/promises';
 import mysql, { type ResultSetHeader, type RowDataPacket } from 'mysql2/promise';
 import path from 'path';
 import util from 'util';
-import { API_PATHS } from "../../../shared/constants/apiRouts.ts";
+import { API_PATHS } from '../../../shared/constants/apiRouts.js';
 import { fileURLToPath } from "url";
-import type { ColorKey, ColorVariant, newColorType, ProductData, ProductPreview, sizeKey, SizeMeasurements, SizeStockBatch, VarSizeStock } from '../../../shared/types/ProductTypes.ts'
-import type { Change, ChangeOp, ChangeVal } from '../../../shared/types/ChangeTypes.ts';
-import type { ServerApiResponse, ServerResponseCodes, ServerResponseTypes } from '../../../shared/types/ServerResponseTypes.ts';
-import sanitizeChangesForAudit from '../tools/sanitizeForAudit.ts';
-import validateParams from '../tools/validateQueryParams.ts';
+import type { ColorKey, ColorVariant, newColorType, ProductData, ProductPreview, sizeKey, SizeMeasurements, SizeStockBatch, VarSizeStock } from '../../../shared/types/ProductTypes.js';
+import type { Change, ChangeOp, ChangeVal } from '../../../shared/types/ChangeTypes.js';
+import type { ServerApiResponse, ServerResponseCodes, ServerResponseTypes } from '../../../shared/types/ServerResponseTypes.js';
+import sanitizeChangesForAudit from '../tools/sanitizeForAudit.js';
+import validateParams from '../tools/validateQueryParams.js';
 import sharp from 'sharp';
-import isOfType from '../tools/isOfType.ts';
+import isOfType from '../tools/isOfType.js';
 
 type attrOptions = {
     name: string;

@@ -1,11 +1,11 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
-import db from '../db/db.ts';
+import db from '../db/db.js';
 import type { RowDataPacket } from 'mysql2';
-import { API_PATHS } from '../../../shared/constants/apiRouts.ts';
-import type { UserSession } from '../../../shared/types/UserTypes.ts';
-import validateParams from '../tools/validateQueryParams.ts';
-import upload from '../middleware/upload.ts';
+import { API_PATHS } from '../../../shared/constants/apiRouts.js';
+import type { UserSession } from '../../../shared/types/UserTypes.js';
+import validateParams from '../tools/validateQueryParams.js';
+import upload from '../middleware/upload.js';
 import type { ServerApiResponse, ServerResponseCodes, ServerResponseTypes } from '../../../shared/types/ServerResponseTypes.ts';
 
 const router = express.Router();

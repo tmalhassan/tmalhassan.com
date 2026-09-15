@@ -33,7 +33,7 @@ export default function useDataFetch<TArgs extends object>(autoExecute: boolean,
         cancelSourceRef.current = source;
 
         try {
-            const response = await axios.get(finalUrl, {
+            const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}${finalUrl}`, {
                 withCredentials: true,
                 cancelToken: source.token,
             });

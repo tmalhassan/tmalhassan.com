@@ -1,13 +1,16 @@
 import express, { json } from "express";
 import cors from "cors";
-import productRoutes from './routes/productRoutes.ts'
-import authRoutes from './routes/authRoutes.ts'
-import sessionMW from "./middleware/session.ts";
+import productRoutes from './routes/productRoutes.js'
+import authRoutes from './routes/authRoutes.js'
+import sessionMW from "./middleware/session.js";
 
 const app = express();
 app.use(cors({
-  origin: 'http://localhost:5173', // your frontend's address
-  credentials: true,               // allow sending cookies/session info
+  origin: process.env.NODE_ENV === 'production' ?  // your frontend's address
+    'https://admin-alura.tmalhassan.com' : 
+    'http://localhost:5173'
+  ,
+  credentials: true,                              // allow sending cookies/session info
 }));
 app.use(json());
 app.use(express.urlencoded({ extended: true }));
@@ -23,6 +26,8 @@ app.use('/api/products', productRoutes);
 app.use('/api/auth', authRoutes);
 
 
-app.listen(3000, () => {
-  console.log("Server running on http://localhost:3000");
+const port = Number(process.env.PORT) || 3000;
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });

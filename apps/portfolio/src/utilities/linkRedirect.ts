@@ -8,15 +8,15 @@ export function handleRedirectButtonClick(target: RedirectLinkTargets) {
 
   switch (target) {
     case 'alura':
-      link = 'https://tmalhassan.com/alura/';
+      link = 'https://admin-alura.tmalhassan.com/';
       break;
 
     case 'meshregen':
-      link = 'https://tmalhassan.com/meshregen/';
+      link = 'https://meshregen.tmalhassan.com/';
       break;
 
     case 'hairday':
-      link = 'https://tmalhassan.com/hairday/';
+      link = 'https://hairday.tmalhassan.com/';
       break;
 
     case 'starleap':

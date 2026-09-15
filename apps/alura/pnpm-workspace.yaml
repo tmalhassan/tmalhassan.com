@@ -2,7 +2,8 @@ packages:
   - apps/*
   - server
   - shared
-ignoredBuiltDependencies:
-  - esbuild
-onlyBuiltDependencies:
-  - '@swc/core'
+allowBuilds:
+  '@swc/core': true
+  bcrypt: true
+  esbuild: true
+  sharp: true

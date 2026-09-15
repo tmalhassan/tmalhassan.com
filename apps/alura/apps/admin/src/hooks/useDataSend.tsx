@@ -38,14 +38,14 @@ export default function useDataSend<T = unknown>() {
 
             switch (method) {
                 case 'POST':
-                    response = await axios.post<T>(url, reqData, {
+                    response = await axios.post<T>(`${import.meta.env.VITE_API_BASE_URL}${url}`, reqData, {
                         headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
                         withCredentials: true,
                         cancelToken: source.token,
                     });
                     break;
                 case 'PUT':
-                    response = await axios.put<T>(url, reqData, {
+                    response = await axios.put<T>(`${import.meta.env.VITE_API_BASE_URL}${url}`, reqData, {
                         headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
                         withCredentials: true,
                         cancelToken: source.token,
