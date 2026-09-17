@@ -6,12 +6,10 @@ node_modules/
 
 # builds
 dist/
-apps/*/dist/
 
 # env files
 .env
 .env.*
-apps/*/.env
 
 # logs
 *.log
@@ -19,3 +17,6 @@ apps/*/.env
 # OS junk
 .DS_Store
 Thumbs.db
+
+# apps
+apps/*

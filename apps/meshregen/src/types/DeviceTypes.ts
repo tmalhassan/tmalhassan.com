@@ -1,1 +1,0 @@
-export type DeviceTypes = 'mobile' | 'tablet' | 'laptop';
